@@ -26,8 +26,8 @@ const int start_positions_of_drone[3][2] = {
 {2,4}
 };
 
-int x = 25;
-int y = 25; 
+int x = 29;
+int y = 29; 
 int goal_x = 0; 
 int goal_y = 0;
 
