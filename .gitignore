@@ -1,0 +1,4 @@
+__pycache__/
+build/
+pumpdetection_model/outputs/model.pt
+.pt
