@@ -115,6 +115,8 @@ if __name__ == "__main__":
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
     init_image_bridge()
-    main_loop()
+
+    main_loop_thread = threading.Thread(target=main_loop)
+    main_loop_thread.start()
     app.run()
 

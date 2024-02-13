@@ -9,8 +9,13 @@ from ROS import vehicle_odometry, offboard_control, camera_control
 import time
 from model_interface import QueueLengthController
 
+global offboard_control_instance
+global INITIAL_X,INITIAL_Y
+INITIAL_X = 9
+INITIAL_Y = 1
 
-def get_random_x_and_y(action,x, y):
+
+def activate_action(action,x, y):
     match action:
         case 0:
             y-=1
@@ -22,6 +27,21 @@ def get_random_x_and_y(action,x, y):
             x-=1
         case _:
             print("unkown action")
+            return x,y
+
+    drone_x = float(x - INITIAL_X)
+    drone_y = float((y - INITIAL_Y) * -1)
+    print("Beginning to move drone to {},{}".format(drone_x, drone_y))
+    e = 0.03
+    offboard_control_instance.x = drone_x
+    offboard_control_instance.y = drone_y
+    curr_x = float(vehicle_odometry.get_drone_pos_x())
+    curr_y = float(vehicle_odometry.get_drone_pos_y())
+    while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
+        time.sleep(0.5)
+        curr_x = float(vehicle_odometry.get_drone_pos_x())
+        curr_y = float(vehicle_odometry.get_drone_pos_y())
+        print("im here, {}, {}, {}".format(offboard_control_instance.x, offboard_control_instance.y, offboard_control_instance.vehicle_local_position.z))
 
     return x, y
 
@@ -32,8 +52,8 @@ def run(template_file, query_file, verifyta_path):
         state_names=["x", "y", "goal_x", "goal_y"])
 
     # initial plant state
-    x = 9
-    y = 1
+    x = INITIAL_X
+    y = INITIAL_Y
     goal_x = 6
     goal_y = 8
     L = 30 # simulation length
@@ -45,7 +65,7 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        x,y = get_random_x_and_y(next_action, x,y)
+        x,y = activate_action(next_action, x,y)
         print(x,y)
         if x == goal_x and y == goal_y:
             print("found pump")
@@ -106,5 +126,6 @@ if __name__ == "__main__":
     base_path = os.path.dirname(os.path.realpath(__file__)) 
     template_file = os.path.join(base_path, args.template_file)
     query_file = os.path.join(base_path, args.query_file)
-    
+    while offboard_control_instance.has_aired == False:
+        print(offboard_control_instance.vehicle_local_position.z)
     run(template_file, query_file, args.verifyta_path)
