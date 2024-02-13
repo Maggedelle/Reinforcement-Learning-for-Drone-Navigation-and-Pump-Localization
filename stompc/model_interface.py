@@ -22,9 +22,8 @@ class QueueLengthController(StrategoController):
 
     def run(self, queryfile="", learning_args={}, verifyta_path="/home/sw9-bois/uppaal-5.0.0-linux64/bin/verifyta"):
         output = super().run(queryfile, learning_args, verifyta_path)
-
         # parse output
         tpls = sutil.get_int_tuples(output)
         result = sutil.get_duration_action(tpls, max_time=1000)
         durations, actions = list(zip(*result)) 
-        return durations, actions
+        return durations,actions

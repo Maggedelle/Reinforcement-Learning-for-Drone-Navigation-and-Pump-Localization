@@ -12,7 +12,7 @@ import "/home/sw9-bois/UPPAAL-TO-ROS-SIMULATION/cpp_client/build/libhttp_test.so
 const double e = 0.1;
 
 bool has_init = true;
-
+int test = -1;
 const int start_positions_of_pump[3][2] = {
 {6,8},
 {2,1},
@@ -28,8 +28,8 @@ const int start_positions_of_drone[3][2] = {
 
 int x = //TAG_x;
 int y = //TAG_y; 
-int goal_x = 0; 
-int goal_y = 0;
+int goal_x = //TAG_goal_x; 
+int goal_y = //TAG_goal_y;
 
 
 
@@ -49,14 +49,14 @@ int env[11][11] = {
 
 
 void init_goal_function () {
-    int random_number_of_pump = get_random_number(0,2);
-    int random_number_of_drone = get_random_number(0,0);
-    env[start_positions_of_pump[random_number_of_pump][0]][start_positions_of_pump[random_number_of_pump][1]] = 2;
+    //int random_number_of_pump = get_random_number(0,0);
+    //int random_number_of_drone = get_random_number(0,0);
+    //env[start_positions_of_pump[random_number_of_pump][0]][start_positions_of_pump[random_number_of_pump][1]] = 2;
     // env[6][9] = 2;
-    goal_x = start_positions_of_pump[random_number_of_pump][0]; 
-    goal_y = start_positions_of_pump[random_number_of_pump][1];
-    x = start_positions_of_drone[random_number_of_drone][0]; 
-    y = start_positions_of_drone[random_number_of_drone][1];
+    //goal_x = start_positions_of_pump[random_number_of_pump][0]; 
+    //goal_y = start_positions_of_pump[random_number_of_pump][1];
+    //x = start_positions_of_drone[random_number_of_drone][0]; 
+    //y = start_positions_of_drone[random_number_of_drone][1];
     // goal_x = 6;
     // goal_y = 9;
 }
@@ -79,6 +79,7 @@ int drone_y = 0;
 
 int prev_x = 0;
 int prev_y = 0;
+
 
 void move(int dir_x, int dir_y) {
     prev_x = x;
@@ -182,37 +183,42 @@ int get_y() {
 			<source ref="id4"/>
 			<target ref="id0"/>
 			<label kind="guard" x="1547" y="280">y == get_y() &amp;&amp; c == 1</label>
-			<label kind="assignment" x="1547" y="297">c = 0</label>
+			<label kind="assignment" x="1547" y="297">c = 0,
+test = -1</label>
 			<nail x="1751" y="272"/>
 			<nail x="1513" y="272"/>
 		</transition>
 		<transition id="id13" controllable="false">
 			<source ref="id3"/>
 			<target ref="id0"/>
-			<label kind="guard" x="1173" y="153">y == get_y() &amp;&amp; c == 1</label>
-			<label kind="assignment" x="1173" y="136">c = 0</label>
-			<nail x="1122" y="187"/>
-			<nail x="1334" y="187"/>
+			<label kind="guard" x="1181" y="136">y == get_y() &amp;&amp; c == 1</label>
+			<label kind="assignment" x="1181" y="119">c = 0,
+test = -1</label>
+			<nail x="1130" y="170"/>
+			<nail x="1342" y="170"/>
 		</transition>
 		<transition id="id14">
 			<source ref="id0"/>
 			<target ref="id4"/>
 			<label kind="guard" x="1547" y="212">isValidMove(0,1) != 1</label>
 			<label kind="assignment" x="1581" y="178">move(0, 1),
-c = 0</label>
+c = 0,
+test = 2</label>
 		</transition>
 		<transition id="id15" color="#a9a9a9">
 			<source ref="id0"/>
 			<target ref="id3"/>
 			<label kind="guard" x="1122" y="246">isValidMove(0,-1) != 1</label>
 			<label kind="assignment" x="1122" y="272">move(0, -1),
-c = 0</label>
+c = 0,
+test = 0</label>
 		</transition>
 		<transition id="id16" controllable="false">
 			<source ref="id2"/>
 			<target ref="id0"/>
 			<label kind="guard" x="1241" y="493">x == get_x() &amp;&amp; c == 1</label>
-			<label kind="assignment" x="1309" y="442">c = 0</label>
+			<label kind="assignment" x="1309" y="442">c = 0,
+test = -1</label>
 			<nail x="1385" y="493"/>
 			<nail x="1385" y="314"/>
 		</transition>
@@ -221,7 +227,8 @@ c = 0</label>
 			<target ref="id2"/>
 			<label kind="guard" x="1445" y="374">isValidMove(1,0) != 1</label>
 			<label kind="assignment" x="1445" y="399">move(1, 0),
-c = 0</label>
+c = 0,
+test = 1</label>
 		</transition>
 		<transition id="id18" controllable="false">
 			<source ref="id1"/>
@@ -236,13 +243,15 @@ c = 0</label>
 			<target ref="id1"/>
 			<label kind="guard" x="1249" y="-17">isValidMove(-1,0) != 1</label>
 			<label kind="assignment" x="1326" y="8">move(-1, 0),
-c = 0</label>
+c = 0,
+test = 3</label>
 		</transition>
 		<transition id="id20" controllable="false">
 			<source ref="id1"/>
 			<target ref="id0"/>
 			<label kind="guard" x="1479" y="8">x == get_x() &amp;&amp; c == 1</label>
-			<label kind="assignment" x="1479" y="25">c = 0</label>
+			<label kind="assignment" x="1479" y="25">c = 0,
+test = -1</label>
 			<nail x="1470" y="-34"/>
 			<nail x="1470" y="136"/>
 		</transition>
