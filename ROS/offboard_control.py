@@ -129,10 +129,9 @@ class OffboardControl(Node):
             if self.offboard_setpoint_counter == 10:
                 self.engage_offboard_mode()
                 self.arm()
-
-            if self.vehicle_local_position.z > -1.5 and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
+            if self.vehicle_local_position.z > -1 and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
                 self.publish_position_setpoint(self.x, self.y, self.z)
-            if(self.vehicle_local_position.z <= -1.5):
+            if(self.vehicle_local_position.z <= -0.5):
                 self.has_aired = True
                 
                 
