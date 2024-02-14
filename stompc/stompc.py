@@ -5,7 +5,7 @@ import rclpy
 import sys
 import threading
 sys.path.insert(0, '../')
-from ROS import vehicle_odometry, offboard_control, camera_control
+from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 
@@ -37,6 +37,7 @@ def activate_action(action,x, y):
     offboard_control_instance.y = drone_y
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
+    print(lidar_sensor.get_avg_distance(curr_x,curr_y))
     while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
@@ -52,6 +53,7 @@ def run(template_file, query_file, verifyta_path):
         state_names=["x", "y", "goal_x", "goal_y"])
 
     # initial plant state
+    # TODO: IMPORTANT, NEEDS TO HAVE AN INITIAL DISTANCE CALCULATED ASWELL!
     x = INITIAL_X
     y = INITIAL_Y
     goal_x = 6
@@ -128,4 +130,5 @@ if __name__ == "__main__":
     query_file = os.path.join(base_path, args.query_file)
     while offboard_control_instance.has_aired == False:
         print(offboard_control_instance.vehicle_local_position.z)
+    
     run(template_file, query_file, args.verifyta_path)
