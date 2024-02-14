@@ -53,7 +53,6 @@ def run(template_file, query_file, verifyta_path):
         state_names=["x", "y", "goal_x", "goal_y"])
 
     # initial plant state
-    # TODO: IMPORTANT, NEEDS TO HAVE AN INITIAL DISTANCE CALCULATED ASWELL!
     x = INITIAL_X
     y = INITIAL_Y
     dist_to_object = lidar_sensor.get_avg_distance()
