@@ -50,7 +50,7 @@ class LidarSensorListener(Node):
         self.destroy_node()
 
 
-def get_avg_distance(drone_x, drone_y):
+def get_avg_distance():
     points = get_points()
     
     print(points[:10])

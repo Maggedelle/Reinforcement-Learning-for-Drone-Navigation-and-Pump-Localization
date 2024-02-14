@@ -15,7 +15,7 @@ INITIAL_X = 9
 INITIAL_Y = 1
 
 
-def activate_action(action,x, y):
+def activate_action(action,x, y, dist_to_object):
     match action:
         case 0:
             y-=1
@@ -27,7 +27,7 @@ def activate_action(action,x, y):
             x-=1
         case _:
             print("unkown action")
-            return x,y
+            return x,y,dist_to_object
 
     drone_x = float(x - INITIAL_X)
     drone_y = float((y - INITIAL_Y) * -1)
@@ -37,14 +37,14 @@ def activate_action(action,x, y):
     offboard_control_instance.y = drone_y
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
-    print(lidar_sensor.get_avg_distance(curr_x,curr_y))
     while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
         curr_y = float(vehicle_odometry.get_drone_pos_y())
-        print("im here, {}, {}, {}".format(offboard_control_instance.x, offboard_control_instance.y, offboard_control_instance.vehicle_local_position.z))
 
-    return x, y
+    curr_dist_to_object = lidar_sensor.get_avg_distance()
+    print(curr_dist_to_object)
+    return x,y,curr_dist_to_object
 
 def run(template_file, query_file, verifyta_path):
 
@@ -56,6 +56,8 @@ def run(template_file, query_file, verifyta_path):
     # TODO: IMPORTANT, NEEDS TO HAVE AN INITIAL DISTANCE CALCULATED ASWELL!
     x = INITIAL_X
     y = INITIAL_Y
+    dist_to_object = lidar_sensor.get_avg_distance()
+    print("initial distance: {}".format(dist_to_object))
     goal_x = 6
     goal_y = 8
     L = 30 # simulation length
@@ -67,7 +69,7 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        x,y = activate_action(next_action, x,y)
+        x,y,dist_to_object = activate_action(next_action, x,y,dist_to_object)
         print(x,y)
         if x == goal_x and y == goal_y:
             print("found pump")
