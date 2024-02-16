@@ -328,6 +328,13 @@ system DroneController, MovingActions, TurningActions;
 			</result>
 		</query>
 		<query>
+			<formula>strategy FastSafe = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; x == 6 &amp;&amp; y == 8</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-02-16 15:16:13 +0100">
+				<option key="--diagnostic" value="-1"/>
+			</result>
+		</query>
+		<query>
 			<formula>saveStrategy("/home/sw9-bois/UPPAAL-TO-ROS-SIMULATION/uppaal_models/fast.json", FastSafe)</formula>
 			<comment/>
 			<option key="--diagnostic" value="-1"/>
