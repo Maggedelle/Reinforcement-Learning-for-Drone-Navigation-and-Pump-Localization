@@ -3,7 +3,9 @@
 <nta>
 	<declaration>/*
 double x = //TAG_x;
-double y = //TAG_y; 
+double y = //TAG_y;
+double yaw = //TAG_yaw;
+double avg_distance = //TAG_avg_distance;
 double goal_x = //TAG_goal_x; 
 double goal_y = //TAG_goal_y;
 */
@@ -33,12 +35,12 @@ double goal_x = 6.0;
 double goal_y = 8.0;
 
 // Utilitise
-double e = 0.2;
+const double e = 0.2;
 const double PI_upper = 3.14;
 const double PI_lower = -3.14;
 const double half_PI_right = 1.57;
 const double half_PI_left = -1.57;
-const double full_turn = -1.0;
+const double full_turn = 3.14;
 
 // Channels
 broadcast chan action_completed;
@@ -123,18 +125,14 @@ broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;</declaration>
 		<name>TurningActions</name>
 		<declaration>clock c;
 
-void turn_drone(double yaw_dx, bool full_turn) {
+void turn_drone(double yaw_dx) {
     if(yaw &gt;=PI_upper &amp;&amp; yaw_dx &gt; 0) {
         yaw = PI_lower;
     } else if (yaw &lt;= PI_lower &amp;&amp; yaw_dx &lt; 0) {
         yaw = PI_upper;
     }
 
-    if (!full_turn) {
-        yaw = (yaw + yaw_dx);
-    } else {
-        yaw = yaw * yaw_dx;
-    }
+    yaw = yaw + yaw_dx;
 }</declaration>
 		<location id="id12" x="-59" y="-136">
 			<name x="-69" y="-170">waiting</name>
@@ -178,7 +176,7 @@ action = -1</label>
 			<label kind="synchronisation" x="76" y="-161">turn_90deg_right?</label>
 			<label kind="assignment" x="76" y="-221">c = 0,
 action = 5,
-turn_drone(half_PI_right,0)</label>
+turn_drone(half_PI_right)</label>
 		</transition>
 		<transition id="id19" controllable="false" color="#a9a9a9">
 			<source ref="id12"/>
@@ -186,7 +184,7 @@ turn_drone(half_PI_right,0)</label>
 			<label kind="synchronisation" x="-348" y="-135">turn_90deg_left?</label>
 			<label kind="assignment" x="-348" y="-110">c = 0,
 action = 4,
-turn_drone(half_PI_left,0)</label>
+turn_drone(half_PI_left)</label>
 		</transition>
 		<transition id="id20" controllable="false">
 			<source ref="id12"/>
@@ -194,7 +192,7 @@ turn_drone(half_PI_left,0)</label>
 			<label kind="synchronisation" x="-161" y="-323">turn_180deg?</label>
 			<label kind="assignment" x="-246" y="-399">c = 0,
 action = 6,
-turn_drone(full_turn,1)</label>
+turn_drone(full_turn)</label>
 		</transition>
 		<transition id="id21" controllable="false">
 			<source ref="id15"/>

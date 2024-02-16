@@ -57,8 +57,8 @@ def run(template_file, query_file, verifyta_path):
     y = INITIAL_Y
     dist_to_object = lidar_sensor.get_avg_distance()
     print("initial distance: {}".format(dist_to_object))
-    goal_x = 6
-    goal_y = 8
+    goal_x = 6.0
+    goal_y = 8.0
     L = 30 # simulation length
     K = 1  # every K we will do MPC
     next_action = None
