@@ -38,9 +38,9 @@ double goal_y = 8.0;
 const double e = 0.2;
 const double PI_upper = 3.14;
 const double PI_lower = -3.14;
-const double half_PI_right = 1.57;
-const double half_PI_left = -1.57;
-const double full_turn = 3.14;
+const double half_PI_right = 1.57;   // 90 degrees right
+const double half_PI_left = -1.57;   // 90 degrees left
+const double full_PI_turn = 3.14;    // 180 degress turn
 
 // Channels
 broadcast chan action_completed;
@@ -190,9 +190,9 @@ turn_drone(half_PI_left)</label>
 			<source ref="id12"/>
 			<target ref="id15"/>
 			<label kind="synchronisation" x="-161" y="-323">turn_180deg?</label>
-			<label kind="assignment" x="-246" y="-399">c = 0,
+			<label kind="assignment" x="-263" y="-382">c = 0,
 action = 6,
-turn_drone(full_turn)</label>
+turn_drone(full_PI_turn)</label>
 		</transition>
 		<transition id="id21" controllable="false">
 			<source ref="id15"/>
