@@ -41,6 +41,7 @@ class OffboardControl(Node):
         self.x = 0.0
         self.y = 0.0
         self.z = -0.60
+        self.yaw = 0.0
         self.vehicle_status = VehicleStatus()
         self.has_aired = False
         self.vehicle_local_position = VehicleLocalPosition()
@@ -90,11 +91,11 @@ class OffboardControl(Node):
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.offboard_control_mode_publisher.publish(msg)
 
-    def publish_position_setpoint(self, x: float, y: float, z: float):
+    def publish_position_setpoint(self, x: float, y: float, z: float, yaw: float):
         """Publish the trajectory setpoint."""
         msg = TrajectorySetpoint()
         msg.position = [x, y, z]
-        msg.yaw = 0.0  # (90 degree)
+        msg.yaw = yaw  # (90 degree)
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         self.trajectory_setpoint_publisher.publish(msg)
 
@@ -130,7 +131,7 @@ class OffboardControl(Node):
                 self.engage_offboard_mode()
                 self.arm()
             if self.vehicle_local_position.z > -1 and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
-                self.publish_position_setpoint(self.x, self.y, self.z)
+                self.publish_position_setpoint(self.x, self.y, self.z, self.yaw)
             if(self.vehicle_local_position.z <= -0.5):
                 self.has_aired = True
                 

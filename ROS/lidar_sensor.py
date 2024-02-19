@@ -53,8 +53,6 @@ class LidarSensorListener(Node):
 def get_avg_distance():
     points = get_points()
     
-    print(points[:10])
-
     dist_avg = sum([x for x,_,_ in points])/len(points)
     #for i in range(height_mid-RANGE_TO_COVER, height_mid+RANGE_TO_COVER):
     #    for j in range(width_mid-RANGE_TO_COVER,width_mid+RANGE_TO_COVER):
