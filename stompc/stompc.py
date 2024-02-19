@@ -4,18 +4,40 @@ import os
 import rclpy
 import sys
 import threading
+import strategoutil as sutil
+
 sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 
 global offboard_control_instance
-global INITIAL_X,INITIAL_Y
-INITIAL_X = 9
-INITIAL_Y = 1
+INITIAL_X = 0.0
+INITIAL_Y = 0.0
+e = 0.2
+PI_upper = 3.14
+PI_lower = -3.14
+PI_half_pos = 1.57
+PI_half_neg = -1.57
+step_length = 1.0
+closest_safe_distance = 1.0
+
+half_PI_right = 1.57   # 90 degrees right
+half_PI_left = -1.57   # 90 degrees left
+full_PI_turn = 3.14    # 180 degress turn
 
 
-def activate_action(action,x, y, dist_to_object):
+def turn_drone(yaw, yaw_dx):
+    if yaw >=PI_upper and yaw_dx > 0:
+        yaw = PI_lower
+    elif yaw <= PI_lower and yaw_dx < 0:
+        yaw = PI_upper
+    
+    return yaw + yaw_dx
+
+
+def activate_action(action, x, y, yaw, avg_distance):
+    
     match action:
         case 0:
             y-=1
@@ -25,40 +47,50 @@ def activate_action(action,x, y, dist_to_object):
             y+=1
         case 3:
             x-=1
+        case 4:
+            yaw = turn_drone(yaw, half_PI_left)
+        case 5:
+            yaw = turn_drone(yaw, half_PI_right)
         case _:
             print("unkown action")
-            return x,y,dist_to_object
-
-    drone_x = float(x - INITIAL_X)
-    drone_y = float((y - INITIAL_Y) * -1)
-    print("Beginning to move drone to {},{}".format(drone_x, drone_y))
-    e = 0.03
+            return x,y,yaw,avg_distance
+        
+    drone_x = x
+    drone_y = y * -1
     offboard_control_instance.x = drone_x
     offboard_control_instance.y = drone_y
+    offboard_control_instance.yaw = yaw
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
+
+    if(action == 4 or action == 5):
+        time.sleep(2)
+
     while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
-    curr_dist_to_object = lidar_sensor.get_avg_distance()
-    print(curr_dist_to_object)
-    return x,y,curr_dist_to_object
+    curr_avg_distance = lidar_sensor.get_avg_distance()
+    return x,y,yaw,curr_avg_distance
 
 def run(template_file, query_file, verifyta_path):
-
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "goal_x", "goal_y"])
-
-    # initial plant state
+        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "NX", "NY", "NYAW"])
+    # initial drone state
     x = INITIAL_X
     y = INITIAL_Y
-    dist_to_object = lidar_sensor.get_avg_distance()
-    print("initial distance: {}".format(dist_to_object))
-    goal_x = 6
-    goal_y = 8
+    yaw = 0.0
+    seen_x = [x]
+    seen_y = [y]
+    seen_yaw = [yaw]
+    N = 1
+
+    avg_distance = lidar_sensor.get_avg_distance()
+
+    goal_x = -2.0
+    goal_y = 5.0
     L = 30 # simulation length
     K = 1  # every K we will do MPC
     next_action = None
@@ -68,7 +100,11 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        x,y,dist_to_object = activate_action(next_action, x,y,dist_to_object)
+        x,y,yaw,avg_distance = activate_action(next_action, x,y,yaw,avg_distance)
+        seen_x.append(x)
+        seen_y.append(y)
+        seen_yaw.append(yaw)
+        N = N + 1
         print(x,y)
         if x == goal_x and y == goal_y:
             print("found pump")
@@ -85,8 +121,19 @@ def run(template_file, query_file, verifyta_path):
             state = {
                 "x": x,
                 "y": y,
+                "yaw":  yaw,
+                "avg_distance":avg_distance,
                 "goal_x": goal_x,
-                "goal_y": goal_y
+                "goal_y": goal_y,
+                "NLOOP": N,
+                "NY": N,
+                "NX": N,
+                "NYAW": N,
+                "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x]) + "]"),
+                "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y]) + "]"),
+                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw]) + "]")
+                
+                
             }
             controller.insert_state(state)
             durations, action_seq = controller.run(
@@ -94,7 +141,6 @@ def run(template_file, query_file, verifyta_path):
                 verifyta_path=verifyta_path)
             
             print(action_seq)
-
             next_action = action_seq[0]
 
 
@@ -118,7 +164,7 @@ if __name__ == "__main__":
     init_image_bridge()
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-t", "--template-file", default="drone_model_stompc.xml", 
+    ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
         help="Path to Stratego .xml file model template")
     ap.add_argument("-q", "--query-file", default="query.q",
         help="Path to Stratego .q query file")
