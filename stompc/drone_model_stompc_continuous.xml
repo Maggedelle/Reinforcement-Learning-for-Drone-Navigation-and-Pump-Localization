@@ -36,7 +36,7 @@ double goal_x = //TAG_goal_x;
 double goal_y = //TAG_goal_y;
 
 // Utilitise
-const double e = 0.2;
+const double e = 0.5;
 const double PI_upper = 3.14;
 const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
@@ -285,7 +285,7 @@ action = -1</label>
 			<source ref="id22"/>
 			<target ref="id25"/>
 			<label kind="synchronisation" x="416" y="76">move_east?</label>
-			<label kind="assignment" x="416" y="17">move(0, step_length),
+			<label kind="assignment" x="416" y="17">move(0, -step_length),
 c = 0,
 action = 2</label>
 		</transition>
@@ -293,7 +293,7 @@ action = 2</label>
 			<source ref="id22"/>
 			<target ref="id24"/>
 			<label kind="synchronisation" x="-51" y="85">move_west?</label>
-			<label kind="assignment" x="-51" y="119">move(0, -step_length),
+			<label kind="assignment" x="-51" y="119">move(0, step_length),
 c = 0,
 action = 0</label>
 		</transition>

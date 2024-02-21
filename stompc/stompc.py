@@ -40,11 +40,11 @@ def activate_action(action, x, y, yaw, avg_distance):
     
     match action:
         case 0:
-            y-=1
+            y+=1
         case 1:
             x+=1
         case 2:
-            y+=1
+            y-=1
         case 3:
             x-=1
         case 4:
@@ -56,7 +56,7 @@ def activate_action(action, x, y, yaw, avg_distance):
             return x,y,yaw,avg_distance
         
     drone_x = x
-    drone_y = y * -1
+    drone_y = y
     offboard_control_instance.x = drone_x
     offboard_control_instance.y = drone_y
     offboard_control_instance.yaw = yaw
@@ -72,15 +72,16 @@ def activate_action(action, x, y, yaw, avg_distance):
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
     curr_avg_distance = lidar_sensor.get_avg_distance()
-    return x,y,yaw,curr_avg_distance
+    print(curr_avg_distance)
+    return curr_x,curr_y,yaw,curr_avg_distance
 
 def run(template_file, query_file, verifyta_path):
     controller = QueueLengthController(
         templatefile=template_file,
         state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "NX", "NY", "NYAW"])
     # initial drone state
-    x = INITIAL_X
-    y = INITIAL_Y
+    x = float(vehicle_odometry.get_drone_pos_x())
+    y = float(vehicle_odometry.get_drone_pos_y())
     yaw = 0.0
     seen_x = [x]
     seen_y = [y]
@@ -90,7 +91,7 @@ def run(template_file, query_file, verifyta_path):
     avg_distance = lidar_sensor.get_avg_distance()
 
     goal_x = -2.0
-    goal_y = 5.0
+    goal_y = -5.0
     L = 30 # simulation length
     K = 1  # every K we will do MPC
     next_action = None
@@ -135,6 +136,7 @@ def run(template_file, query_file, verifyta_path):
                 
                 
             }
+            print(state)
             controller.insert_state(state)
             durations, action_seq = controller.run(
                 queryfile=query_file,
