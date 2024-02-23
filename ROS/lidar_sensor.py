@@ -1,4 +1,5 @@
 import rclpy
+import math
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleLocalPosition, VehicleStatus, VehicleOdometry
@@ -31,7 +32,7 @@ class LidarSensorListener(Node):
         #self.x = vehicle_local_position.position[0]
         #self.y = vehicle_local_position.position[1]
 
-        RANGE_TO_COVER = 25
+        RANGE_TO_COVER = 50
 
         points_to_get = []
         self.width = msg.width
@@ -53,7 +54,11 @@ class LidarSensorListener(Node):
 def get_avg_distance():
     points = get_points()
     
-    dist_avg = sum([x for x,_,_ in points])/len(points)
+    if points == None:
+        return 2.0
+    
+    points = [x for x,_,_ in points if not math.isinf(x)]
+    dist_avg = sum(points)/len(points)
     #for i in range(height_mid-RANGE_TO_COVER, height_mid+RANGE_TO_COVER):
     #    for j in range(width_mid-RANGE_TO_COVER,width_mid+RANGE_TO_COVER):
     #        points_to_get.append((i,j))

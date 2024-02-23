@@ -40,11 +40,11 @@ def activate_action(action, x, y, yaw, avg_distance):
     
     match action:
         case 0:
-            y-=1
+            y+=1
         case 1:
             x+=1
         case 2:
-            y+=1
+            y-=1
         case 3:
             x-=1
         case 4:
@@ -56,7 +56,7 @@ def activate_action(action, x, y, yaw, avg_distance):
             return x,y,yaw,avg_distance
         
     drone_x = x
-    drone_y = y * -1
+    drone_y = y
     offboard_control_instance.x = drone_x
     offboard_control_instance.y = drone_y
     offboard_control_instance.yaw = yaw
@@ -72,26 +72,28 @@ def activate_action(action, x, y, yaw, avg_distance):
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
     curr_avg_distance = lidar_sensor.get_avg_distance()
-    return x,y,yaw,curr_avg_distance
+    print(curr_avg_distance)
+    return curr_x,curr_y,yaw,curr_avg_distance
 
 def run(template_file, query_file, verifyta_path):
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "NX", "NY", "NYAW"])
+        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "seen_distance", "NX", "NY", "NYAW", "NDISTANCE"])
     # initial drone state
-    x = INITIAL_X
-    y = INITIAL_Y
+    x = float(vehicle_odometry.get_drone_pos_x())
+    y = float(vehicle_odometry.get_drone_pos_y())
     yaw = 0.0
-    seen_x = [x]
-    seen_y = [y]
-    seen_yaw = [yaw]
-    N = 1
+    seen_x = []
+    seen_y = []
+    seen_yaw = []
+    seen_distance = []
+    N = 0
 
     avg_distance = lidar_sensor.get_avg_distance()
 
-    goal_x = -2.0
-    goal_y = 5.0
-    L = 30 # simulation length
+    goal_x = 0
+    goal_y = -9.5
+    L = 1000 # simulation length
     K = 1  # every K we will do MPC
     next_action = None
     for k in range(L):
@@ -104,6 +106,7 @@ def run(template_file, query_file, verifyta_path):
         seen_x.append(x)
         seen_y.append(y)
         seen_yaw.append(yaw)
+        seen_distance.append(avg_distance)
         N = N + 1
         print(x,y)
         if x == goal_x and y == goal_y:
@@ -129,12 +132,14 @@ def run(template_file, query_file, verifyta_path):
                 "NY": N,
                 "NX": N,
                 "NYAW": N,
+                "NDISTANCE": N,
                 "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x]) + "]"),
                 "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y]) + "]"),
-                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw]) + "]")
-                
+                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw]) + "]"),
+                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance]) + "]")
                 
             }
+            #print(state)
             controller.insert_state(state)
             durations, action_seq = controller.run(
                 queryfile=query_file,
@@ -154,14 +159,14 @@ def init_image_bridge():
 
 def init_rclpy():
     print("initializing rclpy")
-    rclpy.init()
+    rclpy.init(domain_id=2)
 
 if __name__ == "__main__":
     
     init_rclpy()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
-    init_image_bridge()
+    #init_image_bridge()
 
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
@@ -177,5 +182,5 @@ if __name__ == "__main__":
     query_file = os.path.join(base_path, args.query_file)
     while offboard_control_instance.has_aired == False:
         print(offboard_control_instance.vehicle_local_position.z)
-    
+    time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
