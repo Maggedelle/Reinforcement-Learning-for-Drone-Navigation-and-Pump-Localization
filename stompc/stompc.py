@@ -105,10 +105,10 @@ def run(template_file, query_file, verifyta_path):
             }
             #print(state)
             controller.insert_state(state)
-            action, x,y, yaw = controller.run(
+            action, x,y, yaw,step_length = controller.run(
                 queryfile=query_file,
                 verifyta_path=verifyta_path)
-            print(action,x,y,yaw)
+            print(action,x,y,yaw,step_length)
             
             #print("actions:",action_seq)
 
