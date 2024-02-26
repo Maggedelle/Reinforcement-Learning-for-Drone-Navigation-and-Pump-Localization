@@ -2,15 +2,16 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// State
-double x = -2.1217995;
-double y = -0.89823127;
+double x = -2.0041256;
+double y = -0.5693849;
 double yaw = -1.57;
 double avg_distance = 2.0;
+int current_step_length = 0;
 
-double seen_x[11] = {-0.22422776,-0.285051,-0.24830078,0.8810262,0.8884799,0.9214759,-0.049483676,-1.1946532,-2.2855697,-2.1785505,-2.1217995};
-double seen_y[11] = {-0.098224856,-0.20932405,-0.08650434,-0.05284871,-0.058292665,-0.024385082,-0.046937615,-0.0020205134,-0.04534943,-0.03096442,-0.89823127};
-double seen_yaw[11] = {0.0,-1.57,0.0,0.0,-1.57,-3.14,-3.14,-3.14,-3.14,-1.57,-1.57};
-double seen_distance[11] = {2.6088790328264237,1.0353973153352738,2.0,1.7118044908881187,1.0133817128658296,5.060938245058059,4.725125955152512,2.0,2.7278586740255357,2.0,2.0};
+double seen_x[10] = {-0.016030867,1.0558951,2.0239666,2.0379968,2.0134246,-0.12904535,-1.2668619,-2.2705805,-2.0800683,-2.0041256};
+double seen_y[10] = {-0.024843903,0.043327067,0.04550159,0.10991781,0.106594235,0.13316901,0.23686583,0.28956515,0.43570003,-0.5693849};
+double seen_yaw[10] = {0.0,0.0,0.0,-1.57,-3.14,-3.14,-3.14,-3.14,-1.57,-1.57};
+double seen_distance[10] = {2.746468990492821,2.0,1.0040696354389191,1.255883532321453,5.09687470703125,4.369610326361657,3.239401494908333,2.1003735596895217,2.0,2.0};
 int drone_state = 0;
 
 
@@ -42,7 +43,7 @@ const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
 
-const double step_length = 1.0;
+
 const double closest_safe_distance = 1.0;
 
 const double half_PI_right = 1.57;   // 90 degrees right
@@ -59,7 +60,7 @@ broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 double measured_distance() {
     int i = 0;
     int has_seen_this_state = 0;
-    for(i = 0; i &lt; 11; i++) {
+    for(i = 0; i &lt; 10; i++) {
         if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) &amp;&amp; (yaw - e &lt; seen_yaw[i] &amp;&amp; yaw + e &gt; seen_yaw[i]) ) {
             return seen_distance[i];
         }
@@ -73,7 +74,7 @@ double measured_distance() {
 
 
 
-bool check_distance() {
+bool check_distance(int step_length) {
     if(avg_distance - step_length &lt; closest_safe_distance) {
         return 0;
     }
@@ -138,32 +139,40 @@ bool check_goal() {
 		<transition id="id11">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="943" y="323">yaw == PI_half_pos &amp;&amp; check_distance()</label>
+			<label kind="select" x="910" y="216">step_length : int [1,10]</label>
+			<label kind="guard" x="943" y="323">yaw == PI_half_pos &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1012" y="280">move_west!</label>
+			<label kind="assignment" x="910" y="267">current_step_length = step_length</label>
 			<nail x="978" y="297"/>
 			<nail x="1122" y="297"/>
 		</transition>
 		<transition id="id12">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="977" y="229">yaw == PI_half_neg &amp;&amp; check_distance()</label>
+			<label kind="select" x="910" y="199">step_length : int [1,10]</label>
+			<label kind="guard" x="977" y="229">yaw == PI_half_neg &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1003" y="246">move_east!</label>
+			<label kind="assignment" x="910" y="250">current_step_length = step_length</label>
 			<nail x="986" y="263"/>
 			<nail x="1122" y="263"/>
 		</transition>
 		<transition id="id13">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="969" y="204">yaw == 0 &amp;&amp; check_distance()</label>
+			<label kind="select" x="910" y="182">step_length : int [1,10]</label>
+			<label kind="guard" x="969" y="204">yaw == 0 &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1003" y="212">move_south!</label>
+			<label kind="assignment" x="910" y="233">current_step_length = step_length</label>
 			<nail x="994" y="229"/>
 			<nail x="1113" y="229"/>
 		</transition>
 		<transition id="id14">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="960" y="170">(yaw == PI_upper || yaw == PI_lower) &amp;&amp; check_distance()</label>
+			<label kind="select" x="910" y="170">step_length : int [1,10]</label>
+			<label kind="guard" x="960" y="170">(yaw == PI_upper || yaw == PI_lower) &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1004" y="187">move_north!</label>
+			<label kind="assignment" x="910" y="221">current_step_length = step_length</label>
 			<nail x="986" y="204"/>
 			<nail x="1122" y="204"/>
 		</transition>
@@ -284,7 +293,7 @@ action = -1</label>
 			<source ref="id22"/>
 			<target ref="id25"/>
 			<label kind="synchronisation" x="416" y="76">move_east?</label>
-			<label kind="assignment" x="416" y="17">move(0, -step_length),
+			<label kind="assignment" x="416" y="17">move(0, -current_step_length),
 c = 0,
 action = 2</label>
 		</transition>
@@ -292,7 +301,7 @@ action = 2</label>
 			<source ref="id22"/>
 			<target ref="id24"/>
 			<label kind="synchronisation" x="-51" y="85">move_west?</label>
-			<label kind="assignment" x="-51" y="119">move(0, step_length),
+			<label kind="assignment" x="-51" y="119">move(0, current_step_length),
 c = 0,
 action = 0</label>
 		</transition>
@@ -310,7 +319,7 @@ action = -1</label>
 			<source ref="id22"/>
 			<target ref="id23"/>
 			<label kind="synchronisation" x="255" y="263">move_south?</label>
-			<label kind="assignment" x="255" y="280">move(step_length, 0),
+			<label kind="assignment" x="255" y="280">move(current_step_length, 0),
 c = 0,
 action = 1</label>
 		</transition>
@@ -318,7 +327,7 @@ action = 1</label>
 			<source ref="id22"/>
 			<target ref="id26"/>
 			<label kind="synchronisation" x="136" y="-42">move_north?</label>
-			<label kind="assignment" x="136" y="-102">move(-step_length, 0),
+			<label kind="assignment" x="136" y="-102">move(-current_step_length, 0),
 c = 0,
 action = 3</label>
 		</transition>
