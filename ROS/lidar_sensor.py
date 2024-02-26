@@ -32,6 +32,67 @@ class LidarSensorListener(Node):
         #self.x = vehicle_local_position.position[0]
         #self.y = vehicle_local_position.position[1]
 
+        # If we are to divide width into 3 columns, we are getting 640 / 3 = 213.3333, we have to add -1 so that we have an even split
+        # width:  639 / 3 = 213, with one rest
+        # Height: 480 / 3 = 160, non rest
+        SPLIT_SIZE = 3
+        N_ZONES = SPLIT_SIZE**2
+
+
+        # Split height into SPLIT_SIZE, check if there is an uneven number of points and append rest points to the middle zone
+        # Does the same for width under.
+        HEIGHT_SPLIT_REST = msg.height % SPLIT_SIZE
+        HEIGHT_SPLIT_SIZE = (msg.height - HEIGHT_SPLIT_REST) / SPLIT_SIZE
+        print("hsr: {}, hss: {}".format(HEIGHT_SPLIT_REST,HEIGHT_SPLIT_SIZE))
+        #HEIGHT_SPLITS = [HEIGHT_SPLIT for _ in range(SPLIT_SIZE)]
+
+        #if HEIGHT_SPLIT_REST is not 0:
+        #    HEIGHT_SPLITS[SPLIT_SIZE//2] += HEIGHT_SPLIT_REST
+
+        WIDTH_SPLIT_REST = msg.width % SPLIT_SIZE
+        WIDTH_SPLIT_SIZE = (msg.width - WIDTH_SPLIT_REST) / SPLIT_SIZE
+        print("wsr: {}, wss: {}".format(WIDTH_SPLIT_REST,WIDTH_SPLIT_SIZE))
+        #WIDTH_SPLITS = [WIDTH_SPLIT_SIZE for _ in range(SPLIT_SIZE)]
+
+        #if WIDTH_SPLIT_REST is not 0:
+        #    WIDTH_SPLITS[SPLIT_SIZE//2] += WIDTH_SPLIT_REST
+
+        HEIGHT_RANGES = []
+        WIDTH_RANGES = []
+
+        height_start_range = 0
+        width_start_range = 0
+        for i in range(SPLIT_SIZE):
+            height_end_range = (height_start_range-1) + HEIGHT_SPLIT_SIZE
+            width_end_range = (width_start_range-1) + WIDTH_SPLIT_SIZE
+            if i == SPLIT_SIZE // 2:
+                height_end_range += HEIGHT_SPLIT_REST
+                width_end_range += WIDTH_SPLIT_REST
+
+            HEIGHT_RANGES.append((int(height_start_range),int(height_end_range)))
+            WIDTH_RANGES.append((int(width_start_range),int(width_end_range)))
+
+            height_start_range += HEIGHT_SPLIT_SIZE
+            width_start_range += WIDTH_SPLIT_SIZE
+
+            if i == SPLIT_SIZE // 2:
+                height_start_range += HEIGHT_SPLIT_REST
+                width_start_range += WIDTH_SPLIT_REST
+    
+        print(len(HEIGHT_RANGES),HEIGHT_RANGES)
+        print(len(WIDTH_RANGES),WIDTH_RANGES)
+
+        distances = []
+        for h_start,h_end in HEIGHT_RANGES:
+            points_to_get_test = []
+            for w_start,w_end in WIDTH_RANGES:
+                for h in range(h_start,h_end+1):
+                    points_to_get_test.extend([(h,w) for w in range(w_start,w_end+1)])
+            distances.extend(points_to_get_test)
+            print(len(points_to_get_test))
+
+        print("Distances",len(distances))
+
         RANGE_TO_COVER = 50
 
         points_to_get = []
