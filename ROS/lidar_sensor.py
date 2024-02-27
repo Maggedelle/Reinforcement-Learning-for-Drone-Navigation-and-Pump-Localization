@@ -7,7 +7,6 @@ from sensor_msgs.msg import PointCloud2
 from ROS import point_reader
 
 class LidarSensorListener(Node):
-    zone_points = []
     def __init__(self) -> None:
         super().__init__('vehicle_odom')
         # Configure QoS profile for publishing and subscribing
@@ -17,6 +16,7 @@ class LidarSensorListener(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=1
         )   
+        self.zone_points = []
         # Create subscribers
         self.lidar_sensor_subscriber = self.create_subscription(
             PointCloud2, '/depth_camera/points', self.lidar_sensor_callback, 10)
@@ -85,19 +85,15 @@ class LidarSensorListener(Node):
 def get_avg_distance():
     zones = get_points()
     avg_zone_dists = []
-    
-    for zone in zones:
+    for zone in zones[3:6]:
         if zone == None:
             avg_zone_dists.append(2.0)
             continue
         zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
-        for tpl in zone:
-            print(tpl[0])
-            break
-        print("zone_points length: {}, zone_points: {}".format(len(zone_points), zone_points[:10]))
         avg_zone_dist = sum(zone_points) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
-    
+
+    print(avg_zone_dists)
     return min(avg_zone_dists)
 
 def get_points():
