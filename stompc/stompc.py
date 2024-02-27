@@ -157,6 +157,14 @@ def init_image_bridge():
     image_bridge_thread = threading.Thread(target=run_bridge)
     image_bridge_thread.start()
 
+def init_depth_camera_bridge():
+    print("Starting depth_camera bridge...")
+    def run_depth_camera():
+        print("image depth_camera started...")
+        os.system('ros2 run ros_gz_bridge parameter_bridge /depth_camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked')
+    depth_camera_brdige_thread = threading.Thread(target=run_depth_camera)
+    depth_camera_brdige_thread.start()
+
 def init_rclpy():
     print("initializing rclpy")
     rclpy.init(domain_id=3)
@@ -166,6 +174,7 @@ if __name__ == "__main__":
     init_rclpy()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
+    init_depth_camera_bridge()
     #init_image_bridge()
 
     ap = argparse.ArgumentParser()

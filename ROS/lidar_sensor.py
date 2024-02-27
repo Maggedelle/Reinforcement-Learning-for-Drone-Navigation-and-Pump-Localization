@@ -7,12 +7,7 @@ from sensor_msgs.msg import PointCloud2
 from ROS import point_reader
 
 class LidarSensorListener(Node):
-    """Node for controlling a vehicle in offboard mode."""
-    x = 0.0
-    y = 0.0
-    points = None
-    width = None
-    height = None
+    zone_points = []
     def __init__(self) -> None:
         super().__init__('vehicle_odom')
         # Configure QoS profile for publishing and subscribing
@@ -82,33 +77,24 @@ class LidarSensorListener(Node):
         print(len(HEIGHT_RANGES),HEIGHT_RANGES)
         print(len(WIDTH_RANGES),WIDTH_RANGES)
 
-        distances = []
+        zones = []
         for h_start,h_end in HEIGHT_RANGES:
-            points_to_get_test = []
             for w_start,w_end in WIDTH_RANGES:
+                points_to_get_test = []
                 for h in range(h_start,h_end+1):
                     points_to_get_test.extend([(h,w) for w in range(w_start,w_end+1)])
-            distances.extend(points_to_get_test)
-            print(len(points_to_get_test))
+                zones.append(points_to_get_test)
 
-        print("Distances",len(distances))
+        #test = point_reader.read_points(msg, skip_nans=True, field_names=("x"))
+        #lsttest = list(test)
+        #print(len(lsttest))
 
-        RANGE_TO_COVER = 50
+        for zone in zones:
+                generator = point_reader.read_points(msg, skip_nans=True, field_names=("x"), uvs=zone)
+                points = list(generator)
+                self.zone_points.append(points)
 
-        points_to_get = []
-        self.width = msg.width
-        self.height = msg.height
-        print("width: {}, height: {}".format(self.width,self.height))
-        width_mid = self.width // 2
-        height_mid = self.height // 2
-
-        # We want to get the middle sqaure of points
-        for i in range(height_mid-RANGE_TO_COVER, height_mid+RANGE_TO_COVER):
-            for j in range(width_mid-RANGE_TO_COVER,width_mid+RANGE_TO_COVER):
-                points_to_get.append((i,j))
-        
-        generator = point_reader.read_points(msg, skip_nans=True, field_names=("x", "y", "z"), uvs=points_to_get)
-        self.points = list(generator)
+        print(len(self.zone_points))
         self.destroy_node()
 
 
