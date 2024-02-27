@@ -15,12 +15,7 @@ global offboard_control_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
 e = 0.2
-
-
-
-
-
-
+uppaa_e = 0.5
 def activate_action(x, y, yaw):
       
     drone_x = x
@@ -40,6 +35,55 @@ def activate_action(x, y, yaw):
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
     return curr_x,curr_y,yaw,curr_avg_distance
+
+def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
+    if(yaw == 3.14 or yaw == -3.14):
+        #-x
+        while(distance > 2.0):
+            distance -= uppaa_e
+            x-=uppaa_e
+            seen_x.append(x)
+            seen_y.append(y)
+            seen_yaw.append(yaw)
+            seen_distances.append(distance)
+            N+=1
+        
+    elif(yaw == 0):
+        #+x
+        while(distance > 2.0):
+            distance -= uppaa_e
+            x+=uppaa_e
+            seen_x.append(x)
+            seen_y.append(y)
+            seen_yaw.append(yaw)
+            seen_distances.append(distance)
+            N+=1
+
+
+    elif(yaw == -1.57):
+        #-y
+        while(distance > 2.0):
+            distance -= uppaa_e
+            y-=uppaa_e
+            seen_x.append(x)
+            seen_y.append(y)
+            seen_yaw.append(yaw)
+            seen_distances.append(distance)
+            N+=1
+
+    elif(yaw == 1.57):
+        #+y
+        while(distance > 2.0):
+            distance -= uppaa_e
+            y+=uppaa_e
+            seen_x.append(x)
+            seen_y.append(y)
+            seen_yaw.append(yaw)
+            seen_distances.append(distance)
+            N+=1
+
+    return seen_x, seen_y, seen_yaw, seen_distances, N
+
 
 def run(template_file, query_file, verifyta_path):
     controller = QueueLengthController(
@@ -73,6 +117,7 @@ def run(template_file, query_file, verifyta_path):
         seen_yaw.append(yaw)
         seen_distance.append(avg_distance)
         N = N + 1
+        seen_x, seen_y, seen_yaw, seen_distance, N = calculate_safe_states(seen_x, seen_y, seen_distance, seen_yaw, x, y, yaw, avg_distance, N)
         if x == goal_x and y == goal_y:
             print("found pump")
             break
@@ -92,6 +137,7 @@ def run(template_file, query_file, verifyta_path):
                 "avg_distance":avg_distance,
                 "goal_x": goal_x,
                 "goal_y": goal_y,
+                "NLOOP_PS":N,
                 "NLOOP": N,
                 "NY": N,
                 "NX": N,
