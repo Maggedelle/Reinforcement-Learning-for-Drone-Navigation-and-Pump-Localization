@@ -38,6 +38,7 @@ class LidarSensorListener(Node):
         # Does the same for width under.
         HEIGHT_SPLIT_REST = msg.height % SPLIT_SIZE
         HEIGHT_SPLIT_SIZE = (msg.height - HEIGHT_SPLIT_REST) / SPLIT_SIZE
+        print("Height: {}, width: {}".format(msg.height, msg.width))
         print("hsr: {}, hss: {}".format(HEIGHT_SPLIT_REST,HEIGHT_SPLIT_SIZE))
         #HEIGHT_SPLITS = [HEIGHT_SPLIT for _ in range(SPLIT_SIZE)]
 
@@ -78,17 +79,17 @@ class LidarSensorListener(Node):
         print(len(WIDTH_RANGES),WIDTH_RANGES)
 
         zones = []
-        for h_start,h_end in HEIGHT_RANGES:
-            for w_start,w_end in WIDTH_RANGES:
+        for w_start,w_end in WIDTH_RANGES:
+            for h_start,h_end in HEIGHT_RANGES:
                 points_to_get_test = []
-                for h in range(h_start,h_end+1):
-                    points_to_get_test.extend([(h,w) for w in range(w_start,w_end+1)])
+                for w in range(w_start,w_end+1):
+                    for h in range(h_start,h_end+1):
+                        points_to_get_test.append((w,h))
                 zones.append(points_to_get_test)
 
         #test = point_reader.read_points(msg, skip_nans=True, field_names=("x"))
         #lsttest = list(test)
         #print(len(lsttest))
-
         for zone in zones:
                 generator = point_reader.read_points(msg, skip_nans=True, field_names=("x"), uvs=zone)
                 points = list(generator)
@@ -99,13 +100,22 @@ class LidarSensorListener(Node):
 
 
 def get_avg_distance():
-    points = get_points()
+    zones = get_points()
+    avg_zone_dists = []
     
-    if points == None:
-        return 2.0
+    for zone in zones:
+        print(zone[:10])
+        if zone == None:
+            avg_zone_dists.append(2.0)
+            continue
+        zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
+        print(zone_points[:10])
+        avg_zone_dist = sum(zone_points) / len(zone_points)
+        avg_zone_dists.append(avg_zone_dist)
     
-    points = [x for x,_,_ in points if not math.isinf(x)]
-    dist_avg = sum(points)/len(points)
+    print("Distances: {}, len of distances: {}".format(avg_zone_dists,len(avg_zone_dists)))
+    print("min distance: {}".format(min(avg_zone_dists)))
+    
     #for i in range(height_mid-RANGE_TO_COVER, height_mid+RANGE_TO_COVER):
     #    for j in range(width_mid-RANGE_TO_COVER,width_mid+RANGE_TO_COVER):
     #        points_to_get.append((i,j))
@@ -113,7 +123,7 @@ def get_avg_distance():
             #dist = ((x-drone_x)**2+(y-drone_y)**2)**0.5
             #dists.append(dist)
 
-    return dist_avg
+    return min(avg_zone_dists)
 
 
 
@@ -122,7 +132,7 @@ def get_points():
     vehicle_listener = LidarSensorListener()
     executor.add_node(vehicle_listener)
     executor.spin_once()
-    return vehicle_listener.points
+    return vehicle_listener.zone_points
 
 
 

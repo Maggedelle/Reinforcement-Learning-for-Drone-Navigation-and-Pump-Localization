@@ -2,15 +2,15 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// State
-double x = -0.065483645;
-double y = -0.03704682;
+double x = 0.23809354;
+double y = 0.034848712;
 double yaw = 0.0;
-double avg_distance = 1.6024217670440675;
+double avg_distance = 0.7358148751727922;
 
-double seen_x[1] = {-0.065483645};
-double seen_y[1] = {-0.03704682};
+double seen_x[1] = {0.23809354};
+double seen_y[1] = {0.034848712};
 double seen_yaw[1] = {0.0};
-double seen_distance[1] = {1.6024217670440675};
+double seen_distance[1] = {0.7358148751727922};
 int drone_state = 0;
 
 
