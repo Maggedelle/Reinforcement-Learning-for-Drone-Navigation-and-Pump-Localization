@@ -2,15 +2,15 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// State
-double x = 0.23809354;
-double y = 0.034848712;
-double yaw = 0.0;
-double avg_distance = 0.7358148751727922;
+double x = 0.012474222;
+double y = 0.03793286;
+double yaw = 3.14;
+double avg_distance = 1.0;
 
-double seen_x[1] = {0.23809354};
-double seen_y[1] = {0.034848712};
-double seen_yaw[1] = {0.0};
-double seen_distance[1] = {0.7358148751727922};
+double seen_x[5] = {0.051340256,0.007128535,-0.03491301,0.011325779,0.012474222};
+double seen_y[5] = {0.051217213,-0.013624284,-0.034267683,-0.016761228,0.03793286};
+double seen_yaw[5] = {0.0,-1.57,-3.14,1.57,3.14};
+double seen_distance[5] = {1.0,1.0,1.0,1.0,1.0};
 int drone_state = 0;
 
 
@@ -59,7 +59,7 @@ broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 double measured_distance() {
     int i = 0;
     int has_seen_this_state = 0;
-    for(i = 0; i &lt; 1; i++) {
+    for(i = 0; i &lt; 5; i++) {
         if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) &amp;&amp; (yaw - e &lt; seen_yaw[i] &amp;&amp; yaw + e &gt; seen_yaw[i]) ) {
             return seen_distance[i];
         }

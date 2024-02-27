@@ -30,6 +30,7 @@ class LidarSensorListener(Node):
         # If we are to divide width into 3 columns, we are getting 640 / 3 = 213.3333, we have to add -1 so that we have an even split
         # width:  639 / 3 = 213, with one rest
         # Height: 480 / 3 = 160, non rest
+        # SPLIT_SIZE is used to indicate how many zones that are going to be made. The number of zones created is SPLIT_SIZE^2
         SPLIT_SIZE = 3
         N_ZONES = SPLIT_SIZE**2
 
@@ -38,20 +39,9 @@ class LidarSensorListener(Node):
         # Does the same for width under.
         HEIGHT_SPLIT_REST = msg.height % SPLIT_SIZE
         HEIGHT_SPLIT_SIZE = (msg.height - HEIGHT_SPLIT_REST) / SPLIT_SIZE
-        print("Height: {}, width: {}".format(msg.height, msg.width))
-        print("hsr: {}, hss: {}".format(HEIGHT_SPLIT_REST,HEIGHT_SPLIT_SIZE))
-        #HEIGHT_SPLITS = [HEIGHT_SPLIT for _ in range(SPLIT_SIZE)]
-
-        #if HEIGHT_SPLIT_REST is not 0:
-        #    HEIGHT_SPLITS[SPLIT_SIZE//2] += HEIGHT_SPLIT_REST
 
         WIDTH_SPLIT_REST = msg.width % SPLIT_SIZE
         WIDTH_SPLIT_SIZE = (msg.width - WIDTH_SPLIT_REST) / SPLIT_SIZE
-        print("wsr: {}, wss: {}".format(WIDTH_SPLIT_REST,WIDTH_SPLIT_SIZE))
-        #WIDTH_SPLITS = [WIDTH_SPLIT_SIZE for _ in range(SPLIT_SIZE)]
-
-        #if WIDTH_SPLIT_REST is not 0:
-        #    WIDTH_SPLITS[SPLIT_SIZE//2] += WIDTH_SPLIT_REST
 
         HEIGHT_RANGES = []
         WIDTH_RANGES = []
@@ -75,9 +65,6 @@ class LidarSensorListener(Node):
                 height_start_range += HEIGHT_SPLIT_REST
                 width_start_range += WIDTH_SPLIT_REST
     
-        print(len(HEIGHT_RANGES),HEIGHT_RANGES)
-        print(len(WIDTH_RANGES),WIDTH_RANGES)
-
         zones = []
         for w_start,w_end in WIDTH_RANGES:
             for h_start,h_end in HEIGHT_RANGES:
@@ -87,15 +74,11 @@ class LidarSensorListener(Node):
                         points_to_get_test.append((w,h))
                 zones.append(points_to_get_test)
 
-        #test = point_reader.read_points(msg, skip_nans=True, field_names=("x"))
-        #lsttest = list(test)
-        #print(len(lsttest))
         for zone in zones:
                 generator = point_reader.read_points(msg, skip_nans=True, field_names=("x"), uvs=zone)
                 points = list(generator)
                 self.zone_points.append(points)
 
-        print(len(self.zone_points))
         self.destroy_node()
 
 
@@ -104,28 +87,18 @@ def get_avg_distance():
     avg_zone_dists = []
     
     for zone in zones:
-        print(zone[:10])
         if zone == None:
             avg_zone_dists.append(2.0)
             continue
         zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
-        print(zone_points[:10])
+        for tpl in zone:
+            print(tpl[0])
+            break
+        print("zone_points length: {}, zone_points: {}".format(len(zone_points), zone_points[:10]))
         avg_zone_dist = sum(zone_points) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
     
-    print("Distances: {}, len of distances: {}".format(avg_zone_dists,len(avg_zone_dists)))
-    print("min distance: {}".format(min(avg_zone_dists)))
-    
-    #for i in range(height_mid-RANGE_TO_COVER, height_mid+RANGE_TO_COVER):
-    #    for j in range(width_mid-RANGE_TO_COVER,width_mid+RANGE_TO_COVER):
-    #        points_to_get.append((i,j))
-            #x,y,z = points[i][j]
-            #dist = ((x-drone_x)**2+(y-drone_y)**2)**0.5
-            #dists.append(dist)
-
     return min(avg_zone_dists)
-
-
 
 def get_points():
     executor = rclpy.executors.SingleThreadedExecutor()
