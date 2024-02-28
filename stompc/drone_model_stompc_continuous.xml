@@ -55,6 +55,8 @@ broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
 broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 
+double distance_to_goal = 1000;
+
 bool has_been_in_partial_state(double x, double y) {
     int i = 0;
     for(i = 0; i &lt; //TAG_NLOOP_PS; i++) {
@@ -135,6 +137,7 @@ bool can_move(int action, int step_length) {
     return false;
 }</declaration>
 		<location id="id0" x="892" y="238">
+			<name x="833" y="263">DescisionState</name>
 		</location>
 		<location id="id1" x="1419" y="246">
 		</location>
@@ -331,6 +334,7 @@ void move(double dir_x, double dir_y) {
     x = x + dir_x;
     y = y + dir_y;
     avg_distance = measured_distance();
+    distance_to_goal = sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>
@@ -439,7 +443,11 @@ system DroneController, MovingActions, TurningActions;
 			<comment>// Learn startegy that minimize time to target</comment>
 		</query>
 		<query>
-			<formula>strategy FastSafe = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; DroneController.target</formula>
+			<formula>strategy FastSafe = minE(distance_to_goal) [&lt;=1000]  {DroneController.DescisionState} -&gt; {x,y,yaw}  : &lt;&gt; (DroneController.target || time &gt;= 4)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
 			<comment/>
 		</query>
 		<query>
@@ -515,6 +523,18 @@ system DroneController, MovingActions, TurningActions;
 		</query>
 		<query>
 			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy FastSafeOLD = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; DroneController.target</formula>
 			<comment/>
 		</query>
 	</queries>

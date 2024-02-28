@@ -50,6 +50,9 @@ const double half_PI_right = 1.57;   // 90 degrees right
 const double half_PI_left = -1.57;   // 90 degrees left
 const double full_PI_turn = 3.14;    // 180 degress turn
 
+
+double distance_to_goal = 1000;
+
 // Channels
 broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
@@ -62,7 +65,7 @@ bool has_been_in_partial_state(double x, double y) {
             return true;
         }
     }
-
+    
     return false;
 }
 
@@ -135,6 +138,7 @@ bool can_move(int action, int step_length) {
     return false;
 }</declaration>
 		<location id="id0" x="892" y="238">
+			<name x="833" y="314">DescisionState</name>
 		</location>
 		<location id="id1" x="1419" y="246">
 		</location>
@@ -331,6 +335,7 @@ void move(double dir_x, double dir_y) {
     x = x + dir_x;
     y = y + dir_y;
     avg_distance = measured_distance();
+    distance_to_goal = sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>
@@ -439,7 +444,14 @@ system DroneController, MovingActions, TurningActions;
 			<comment>// Learn startegy that minimize time to target</comment>
 		</query>
 		<query>
-			<formula>strategy FastSafe = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; DroneController.target</formula>
+			<formula>strategy FastSafe = minE(distance_to_goal) [&lt;=1000]  {DroneController.DescisionState} -&gt; {x,y,yaw}  : &lt;&gt; (DroneController.target || time &gt;= 4)</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-02-28 17:50:47 +0100">
+				<option key="--diagnostic" value="-1"/>
+			</result>
+		</query>
+		<query>
+			<formula>strategy FastSafe2 = minE(time) [&lt;=1000]  {DroneController.DescisionState} -&gt; {x,y,yaw}  : &lt;&gt; DroneController.target</formula>
 			<comment/>
 		</query>
 		<query>
