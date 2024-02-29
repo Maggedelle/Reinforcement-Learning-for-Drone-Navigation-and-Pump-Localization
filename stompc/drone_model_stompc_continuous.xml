@@ -43,6 +43,7 @@ const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
 
+const double turning_cost = 1.5;
 
 const double closest_safe_distance = 1.0;
 
@@ -55,7 +56,7 @@ broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
 broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 
-double distance_to_goal = 1000;
+double distance_to_goal = 1;
 
 bool has_been_in_partial_state(double x, double y) {
     int i = 0;
@@ -195,7 +196,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id12">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1054" y="374">step_length : int [1,2]</label>
+			<label kind="select" x="1054" y="374">step_length : int [1,5]</label>
 			<label kind="guard" x="1062" y="391">can_move(0,step_length)</label>
 			<label kind="synchronisation" x="1088" y="408">move_west!</label>
 			<label kind="assignment" x="1012" y="425">current_step_length = step_length</label>
@@ -205,7 +206,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id13">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1028" y="289">step_length : int [1,2]</label>
+			<label kind="select" x="1028" y="289">step_length : int [1,5]</label>
 			<label kind="guard" x="1054" y="306">can_move(2, step_length)</label>
 			<label kind="synchronisation" x="1088" y="331">move_east!</label>
 			<label kind="assignment" x="1011" y="348">current_step_length = step_length</label>
@@ -215,7 +216,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id14">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1054" y="187">step_length : int [1,2]</label>
+			<label kind="select" x="1054" y="187">step_length : int [1,5]</label>
 			<label kind="guard" x="1088" y="204">can_move(1, step_length)</label>
 			<label kind="synchronisation" x="1088" y="221">move_south!</label>
 			<label kind="assignment" x="994" y="238">current_step_length = step_length</label>
@@ -225,7 +226,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id15">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1028" y="110">step_length : int [1,2]</label>
+			<label kind="select" x="1028" y="110">step_length : int [1,5]</label>
 			<label kind="guard" x="1079" y="127">can_move(3, step_length)</label>
 			<label kind="synchronisation" x="1088" y="144">move_north!</label>
 			<label kind="assignment" x="1003" y="161">current_step_length = step_length</label>
@@ -253,6 +254,7 @@ void turn_drone(double yaw_dx) {
     }
 
     avg_distance = measured_distance();
+    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2))) + turning_cost;
 }</declaration>
 		<location id="id16" x="-59" y="-136">
 			<name x="-85" y="-119">waiting</name>
@@ -334,7 +336,7 @@ void move(double dir_x, double dir_y) {
     x = x + dir_x;
     y = y + dir_y;
     avg_distance = measured_distance();
-    distance_to_goal = sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
+    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>

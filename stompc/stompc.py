@@ -5,7 +5,7 @@ import rclpy
 import sys
 import threading
 import strategoutil as sutil
-
+import time
 sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
@@ -106,6 +106,7 @@ def run(template_file, query_file, verifyta_path):
     L = 1000 # simulation length
     K = 1  # every K we will do MPC
     for k in range(L):
+        K_START_TIME = time.time()
         # run plant
 
         #handle_action(next_action);
@@ -143,18 +144,23 @@ def run(template_file, query_file, verifyta_path):
                 "NX": N,
                 "NYAW": N,
                 "NDISTANCE": N,
-                "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x]) + "]"),
-                "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y]) + "]"),
-                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw]) + "]"),
-                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance]) + "]")
+                "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x][::-1]) + "]"),
+                "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y][::-1]) + "]"),
+                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw][::-1]) + "]"),
+                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance][::-1]) + "]")
                 
             }
             #print(state)
             controller.insert_state(state)
+            RUN_START_TIME = time.time()
             action, x,y, yaw,step_length = controller.run(
                 queryfile=query_file,
                 verifyta_path=verifyta_path)
+            RUN_END_TIME = time.time()
+            K_END_TIME = time.time()
             print(action,x,y,yaw,step_length)
+
+            print("Iteration {} took: {}ms, training took: {} with array lengths of {}".format(k,(K_END_TIME-K_START_TIME)*10**3,(RUN_END_TIME-RUN_START_TIME)*10**3,N))
             
             #print("actions:",action_seq)
 
