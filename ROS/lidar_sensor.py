@@ -17,6 +17,9 @@ class LidarSensorListener(Node):
             depth=1
         )   
         self.zone_points = []
+
+        # SPLIT_SIZE is used to indicate how many zones that are going to be made. The number of zones created is SPLIT_SIZE^2
+        self.SPLIT_SIZE = 7
         # Create subscribers
         self.lidar_sensor_subscriber = self.create_subscription(
             PointCloud2, '/depth_camera/points', self.lidar_sensor_callback, 10)
@@ -31,27 +34,26 @@ class LidarSensorListener(Node):
         # width:  639 / 3 = 213, with one rest
         # Height: 480 / 3 = 160, non rest
         # SPLIT_SIZE is used to indicate how many zones that are going to be made. The number of zones created is SPLIT_SIZE^2
-        SPLIT_SIZE = 3
-        N_ZONES = SPLIT_SIZE**2
+        N_ZONES = self.SPLIT_SIZE**2
 
 
         # Split height into SPLIT_SIZE, check if there is an uneven number of points and append rest points to the middle zone
         # Does the same for width under.
-        HEIGHT_SPLIT_REST = msg.height % SPLIT_SIZE
-        HEIGHT_SPLIT_SIZE = (msg.height - HEIGHT_SPLIT_REST) / SPLIT_SIZE
+        HEIGHT_SPLIT_REST = msg.height % self.SPLIT_SIZE
+        HEIGHT_SPLIT_SIZE = (msg.height - HEIGHT_SPLIT_REST) / self.SPLIT_SIZE
 
-        WIDTH_SPLIT_REST = msg.width % SPLIT_SIZE
-        WIDTH_SPLIT_SIZE = (msg.width - WIDTH_SPLIT_REST) / SPLIT_SIZE
+        WIDTH_SPLIT_REST = msg.width % self.SPLIT_SIZE
+        WIDTH_SPLIT_SIZE = (msg.width - WIDTH_SPLIT_REST) / self.SPLIT_SIZE
 
         HEIGHT_RANGES = []
         WIDTH_RANGES = []
 
         height_start_range = 0
         width_start_range = 0
-        for i in range(SPLIT_SIZE):
+        for i in range(self.SPLIT_SIZE):
             height_end_range = (height_start_range-1) + HEIGHT_SPLIT_SIZE
             width_end_range = (width_start_range-1) + WIDTH_SPLIT_SIZE
-            if i == SPLIT_SIZE // 2:
+            if i == self.SPLIT_SIZE // 2:
                 height_end_range += HEIGHT_SPLIT_REST
                 width_end_range += WIDTH_SPLIT_REST
 
@@ -61,7 +63,7 @@ class LidarSensorListener(Node):
             height_start_range += HEIGHT_SPLIT_SIZE
             width_start_range += WIDTH_SPLIT_SIZE
 
-            if i == SPLIT_SIZE // 2:
+            if i == self.SPLIT_SIZE // 2:
                 height_start_range += HEIGHT_SPLIT_REST
                 width_start_range += WIDTH_SPLIT_REST
     
@@ -83,25 +85,42 @@ class LidarSensorListener(Node):
 
 
 def get_avg_distance():
-    zones = get_points()
+    zones,SPLIT_SIZE = get_points()
+    MIDDLE_ZONE_SPREAD = SPLIT_SIZE//2   # Gives us the middle zone in a row of the SPLIT_SIZE**2 matrix
+    MIDDLE_ROW = SPLIT_SIZE**2//2 # Gives us the middle row in the matrix
+    
     avg_zone_dists = []
-    for zone in zones[3:6]:
+    for zone in zones[MIDDLE_ROW-MIDDLE_ZONE_SPREAD:MIDDLE_ROW+MIDDLE_ZONE_SPREAD+1]:
         if zone == None:
             avg_zone_dists.append(2.0)
             continue
         zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
+        if len(zone_points) == 0:
+            print(f'zone with 0 non inf points: {zone}')
+            continue
         avg_zone_dist = sum(zone_points) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
 
-    print(avg_zone_dists)
-    return min(avg_zone_dists)
+    print("Average zone distances:",avg_zone_dists)
+    #TODO: Skal det laves sådan at det ikke er split_size den tager efter her, siden der kan være færre zoner end 
+    #      forventet pga. det med nogle zoner er fuld af inf?
+    if SPLIT_SIZE % 2 == 0:
+        return_dist = (avg_zone_dists[(SPLIT_SIZE//2)-1] + avg_zone_dists[SPLIT_SIZE//2]) / 2
+    else:
+        return_dist = avg_zone_dists[SPLIT_SIZE//2]
+
+    print("Test print:",avg_zone_dists[1:-1])
+    if any(x < 2 for x in avg_zone_dists[1:-1]):
+        return_dist = min(avg_zone_dists)
+
+    return return_dist
 
 def get_points():
     executor = rclpy.executors.SingleThreadedExecutor()
     vehicle_listener = LidarSensorListener()
     executor.add_node(vehicle_listener)
     executor.spin_once()
-    return vehicle_listener.zone_points
+    return vehicle_listener.zone_points, vehicle_listener.SPLIT_SIZE
 
 
 
