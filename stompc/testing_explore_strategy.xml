@@ -2,16 +2,16 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// State
-double x = -2.4182544;
-double y = -0.011685982;
-double yaw = -1.57;
-double avg_distance = 4.293153902888298;
+double x = -2.3906038;
+double y = 0.1422101;
+double yaw = 3.14;
+double avg_distance = 4.610320845522423;
 int current_step_length = 0;
 
-double seen_x[19] = {-2.4182544,-2.4182544,-2.4182544,-2.4182544,-2.4182544,-2.4182544,-1.2518208,-0.1586747,-2.59440797,-2.09440797,-1.59440797,-1.09440797,-0.59440797,-0.09440797,-0.20927769,0.97282505,-0.06498312,0.519714026,0.019714026};
-double seen_y[19] = {-2.511685982,-2.011685982,-1.511685982,-1.011685982,-0.511685982,-0.011685982,0.067677155,0.021063529,-0.07541236,-0.07541236,-0.07541236,-0.07541236,-0.07541236,-0.07541236,-0.020956105,-0.045140114,-0.044499945,-0.010983751,-0.010983751};
-double seen_yaw[19] = {-1.57,-1.57,-1.57,-1.57,-1.57,-1.57,-1.57,-1.57,-3.14,-3.14,-3.14,-3.14,-3.14,-3.14,-1.57,-1.57,-1.57,0.0,0.0};
-double seen_distance[19] = {1.7931539028882977,2.2931539028882977,2.7931539028882977,3.2931539028882977,3.7931539028882977,4.293153902888298,1.0539576261997223,0.9381798336565494,1.5868983305454254,2.0868983305454254,2.5868983305454254,3.0868983305454254,3.5868983305454254,4.086898330545425,1.0024918296337129,1.0365297335982322,1.0713222281694412,1.9548961193084717,2.4548961193084717};
+double seen_x[6] = {-0.0956103,-0.009372588,-0.049579557,-0.21619672,-1.4099505,-2.3906038};
+double seen_y[6] = {0.24388142,0.32023555,0.2613104,0.14336637,0.16357252,0.1422101};
+double seen_yaw[6] = {0.0,-1.57,0.0,3.14,3.14,3.14};
+double seen_distance[6] = {2.359677339053154,1.3532885540604591,2.7202356848183578,4.8453694278240205,3.645837997026682,4.610320845522423};
 int drone_state = 0;
 
 
@@ -43,7 +43,6 @@ const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
 
-const double turning_cost = 1.5;
 
 const double closest_safe_distance = 1.0;
 
@@ -56,23 +55,12 @@ broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
 broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 
-double distance_to_goal = 1;
 
-bool has_been_in_partial_state(double x, double y) {
-    int i = 0;
-    for(i = 0; i &lt; 19; i++) {
-        if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) ) {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 double measured_distance() {
     int i = 0;
     int has_seen_this_state = 0;
-    for(i = 0; i &lt; 19; i++) {
+    for(i = 0; i &lt; 6; i++) {
         if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) &amp;&amp; (yaw - e &lt; seen_yaw[i] &amp;&amp; yaw + e &gt; seen_yaw[i]) ) {
             return seen_distance[i];
         }
@@ -99,46 +87,8 @@ bool check_goal() {
     }
 
     return 0; 
-}
-
-
-
-//          0: West,
-//          1: South,
-//          2: East,
-//          3: North
-bool can_move(int action, int step_length) {
-
-    if(action == 0) {
-        if((yaw == PI_half_pos) &amp;&amp; check_distance(step_length) || has_been_in_partial_state(x, y + step_length)) {
-            return true;
-        }else {
-            return false;
-        }
-    }else if(action == 1) {
-        if((yaw == 0 &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x + step_length, y)) {
-            return true;
-        }else {
-            return false;
-        }
-    }else if(action == 2) {
-        if((yaw == PI_half_neg &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x, y - step_length)) {
-            return true;
-        }else {
-            return false;
-        }
-    }else if(action == 3) {
-        if(((yaw == PI_upper || yaw == PI_lower) &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x - step_length, y)) {
-            return true;
-        }else {
-            return false;
-        }
-    }
-
-    return false;
 }</declaration>
 		<location id="id0" x="892" y="238">
-			<name x="833" y="263">DescisionState</name>
 		</location>
 		<location id="id1" x="1419" y="246">
 		</location>
@@ -196,18 +146,18 @@ bool can_move(int action, int step_length) {
 		<transition id="id12">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1054" y="374">step_length : int [1,5]</label>
-			<label kind="guard" x="1062" y="391">can_move(0,step_length)</label>
-			<label kind="synchronisation" x="1088" y="408">move_west!</label>
-			<label kind="assignment" x="1012" y="425">current_step_length = step_length</label>
-			<nail x="986" y="408"/>
-			<nail x="1352" y="408"/>
+			<label kind="select" x="1045" y="382">step_length : int [1,10]</label>
+			<label kind="guard" x="977" y="391">yaw == PI_half_pos &amp;&amp; check_distance(step_length)</label>
+			<label kind="synchronisation" x="1079" y="408">move_west!</label>
+			<label kind="assignment" x="1003" y="425">current_step_length = step_length</label>
+			<nail x="977" y="408"/>
+			<nail x="1343" y="408"/>
 		</transition>
 		<transition id="id13">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1028" y="289">step_length : int [1,5]</label>
-			<label kind="guard" x="1054" y="306">can_move(2, step_length)</label>
+			<label kind="select" x="1028" y="289">step_length : int [1,10]</label>
+			<label kind="guard" x="960" y="306">yaw == PI_half_neg &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1088" y="331">move_east!</label>
 			<label kind="assignment" x="1011" y="348">current_step_length = step_length</label>
 			<nail x="1011" y="331"/>
@@ -216,8 +166,8 @@ bool can_move(int action, int step_length) {
 		<transition id="id14">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1054" y="187">step_length : int [1,5]</label>
-			<label kind="guard" x="1088" y="204">can_move(1, step_length)</label>
+			<label kind="select" x="1054" y="187">step_length : int [1,10]</label>
+			<label kind="guard" x="1011" y="204">yaw == 0 &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1088" y="221">move_south!</label>
 			<label kind="assignment" x="994" y="238">current_step_length = step_length</label>
 			<nail x="1079" y="221"/>
@@ -226,8 +176,8 @@ bool can_move(int action, int step_length) {
 		<transition id="id15">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="1028" y="110">step_length : int [1,5]</label>
-			<label kind="guard" x="1079" y="127">can_move(3, step_length)</label>
+			<label kind="select" x="1028" y="110">step_length : int [1,10]</label>
+			<label kind="guard" x="892" y="127">(yaw == PI_upper || yaw == PI_lower) &amp;&amp; check_distance(step_length)</label>
 			<label kind="synchronisation" x="1088" y="144">move_north!</label>
 			<label kind="assignment" x="1003" y="161">current_step_length = step_length</label>
 			<nail x="986" y="144"/>
@@ -254,7 +204,6 @@ void turn_drone(double yaw_dx) {
     }
 
     avg_distance = measured_distance();
-    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2))) + turning_cost;
 }</declaration>
 		<location id="id16" x="-59" y="-136">
 			<name x="-85" y="-119">waiting</name>
@@ -336,7 +285,6 @@ void move(double dir_x, double dir_y) {
     x = x + dir_x;
     y = y + dir_y;
     avg_distance = measured_distance();
-    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>
@@ -445,11 +393,7 @@ system DroneController, MovingActions, TurningActions;
 			<comment>// Learn startegy that minimize time to target</comment>
 		</query>
 		<query>
-			<formula>strategy FastSafe = minE(distance_to_goal) [&lt;=1000]  {DroneController.DescisionState} -&gt; {x,y,yaw}  : &lt;&gt; (DroneController.target || time &gt;= 4)</formula>
-			<comment/>
-		</query>
-		<query>
-			<formula/>
+			<formula>strategy FastSafe = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; DroneController.target</formula>
 			<comment/>
 		</query>
 		<query>
@@ -525,18 +469,6 @@ system DroneController, MovingActions, TurningActions;
 		</query>
 		<query>
 			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula>strategy FastSafeOLD = minE(time) [&lt;=1000]  {x,y} -&gt; {}  : &lt;&gt; DroneController.target</formula>
 			<comment/>
 		</query>
 	</queries>
