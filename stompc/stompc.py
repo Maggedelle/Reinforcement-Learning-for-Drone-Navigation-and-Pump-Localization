@@ -10,7 +10,7 @@ sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
-from environment import generate_environment, build_uppaal_environment_array_string
+from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
 global offboard_control_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
@@ -97,11 +97,14 @@ def run(template_file, query_file, verifyta_path):
     seen_y = []
     seen_yaw = []
     seen_distance = []
-
-    environment = generate_environment()
+    avg_distance = lidar_sensor.get_avg_distance()
     N = 0
 
-    avg_distance = lidar_sensor.get_avg_distance()
+    environment = generate_environment()
+    
+    controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(environment, "environment")], 
+                                   point_vars=["x", "y", "yaw"], 
+                                   observables=["action", "x", "y", "yaw", "current_step_length"])
 
     goal_x = 0
     goal_y = -9.5
@@ -186,7 +189,7 @@ def init_depth_camera_bridge():
 
 def init_rclpy():
     print("initializing rclpy")
-    rclpy.init(domain_id=3)
+    rclpy.init(domain_id=2)
 
 if __name__ == "__main__":
     

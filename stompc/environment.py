@@ -41,4 +41,11 @@ def build_uppaal_environment_array_string(environment):
 
     return environment_array_string
 
-    
+def unpack_environment(environment, variable_name):
+     lst_string = []
+     for i in range(0, len(environment)):
+         for j in range(0, len(environment[0])):
+             lst_string.append("{}[{}][{}]".format(variable_name, i,j))
+
+     return ",".join(lst_string)
+     
