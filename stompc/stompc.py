@@ -10,7 +10,7 @@ sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
-
+from environment import generate_environment
 global offboard_control_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
@@ -209,3 +209,4 @@ if __name__ == "__main__":
         print(offboard_control_instance.vehicle_local_position.z)
     time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
+    
