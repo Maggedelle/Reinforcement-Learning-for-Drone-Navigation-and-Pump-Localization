@@ -4,7 +4,7 @@ width = 8.0
 height = 13.0
 
 #GRANUALITY
-granuality = 0.5
+granuality = 1
 
 def generate_environment():
     environment = []
@@ -24,3 +24,21 @@ def generate_environment():
         width_start -= granuality
 
     return environment
+
+
+def build_uppaal_environment_array_string(environment):
+    environment_array_string = "int environment[{}][{}] = ".format(len(environment), len(environment[0]))
+    environment_array_string += "{\n"
+
+    lst_strings = []
+    for lst_ele in environment:
+        arr_string = "  {"
+        arr_string += ','.join([str(x) for x in lst_ele])
+        arr_string += "}"
+        lst_strings.append(arr_string)
+    environment_array_string += ',\n'.join(lst_strings) + "\n}"
+
+
+    return environment_array_string
+
+    
