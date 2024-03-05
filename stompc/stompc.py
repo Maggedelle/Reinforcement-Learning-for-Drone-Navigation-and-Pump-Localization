@@ -183,7 +183,7 @@ def init_depth_camera_bridge():
 
 def init_rclpy():
     print("initializing rclpy")
-    rclpy.init(domain_id=2)
+    rclpy.init(domain_id=3)
 
 if __name__ == "__main__":
     

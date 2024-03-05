@@ -77,7 +77,7 @@ class LidarSensorListener(Node):
                 zones.append(points_to_get_test)
 
         for zone in zones:
-                generator = point_reader.read_points(msg, skip_nans=True, field_names=("x"), uvs=zone)
+                generator = point_reader.read_points(msg, skip_nans=True, field_names=("x,y,z"), uvs=zone)
                 points = list(generator)
                 self.zone_points.append(points)
 
@@ -94,14 +94,15 @@ def get_avg_distance():
         if zone == None:
             avg_zone_dists.append(2.0)
             continue
-        zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
+        zone_points = [tpl for tpl in zone if not any(math.isinf(d) for d in tpl)]
         if len(zone_points) == 0:
             print(f'zone with 0 non inf points: {zone}')
             continue
-        avg_zone_dist = sum(zone_points) / len(zone_points)
+        print("zone_points: {}".format(zone_points[:5]))
+
+        avg_zone_dist = sum([x for x,_,_ in zone_points]) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
 
-    print("Average zone distances:",avg_zone_dists)
     #TODO: Skal det laves sådan at det ikke er split_size den tager efter her, siden der kan være færre zoner end 
     #      forventet pga. det med nogle zoner er fuld af inf?
     if SPLIT_SIZE % 2 == 0:
