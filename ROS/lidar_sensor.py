@@ -96,9 +96,7 @@ def get_avg_distance():
             continue
         zone_points = [tpl for tpl in zone if not any(math.isinf(d) for d in tpl)]
         if len(zone_points) == 0:
-            print(f'zone with 0 non inf points: {zone}')
             continue
-        print("zone_points: {}".format(zone_points[:5]))
 
         avg_zone_dist = sum([x for x,_,_ in zone_points]) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
@@ -110,7 +108,6 @@ def get_avg_distance():
     else:
         return_dist = avg_zone_dists[SPLIT_SIZE//2]
 
-    print("Test print:",avg_zone_dists[1:-1])
     if any(x < 2 for x in avg_zone_dists[1:-1]):
         return_dist = min(avg_zone_dists)
 

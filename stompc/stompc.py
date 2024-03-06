@@ -7,16 +7,16 @@ import threading
 import strategoutil as sutil
 import time
 sys.path.insert(0, '../')
-from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
+from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, pose_reader
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
 global offboard_control_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
-e = 0.2
+e = 0.05
 uppaa_e = 0.5
-def activate_action(x, y, yaw):
+def activate_action(x, y, yaw, xy_tpls, gazebo_diff_tpls):
       
     drone_x = x
     drone_y = y
@@ -25,7 +25,6 @@ def activate_action(x, y, yaw):
     offboard_control_instance.yaw = yaw
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
-
     time.sleep(2)
     while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
         time.sleep(0.5)
@@ -34,7 +33,26 @@ def activate_action(x, y, yaw):
 
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
-    return curr_x,curr_y,yaw,curr_avg_distance
+    gazebo_offset_x = 4.5
+    gazebo_offset_y = 1.0
+    print("Current x: {} Current y: {}".format(x,y))
+    expected_x = gazebo_offset_x + y
+    expected_y = gazebo_offset_y + x
+    print("Gazebo x should be {} and Gazebo y should be {}".format(expected_x,expected_y))
+    pose = pose_reader.get_pose()
+    actual_x = pose[0]
+    actual_y = pose[1]
+
+    xy_tpls.append(((expected_x, expected_y),(actual_x,actual_y)))
+    gazebo_diff_tpls.append((abs(expected_x - actual_x), abs(expected_y - actual_y)))
+
+    avg_diff_x = sum([x for x,_ in gazebo_diff_tpls]) / len(gazebo_diff_tpls)
+    avg_diff_y = sum([y for _,y in gazebo_diff_tpls]) / len(gazebo_diff_tpls)
+
+    print("Actual gazebo x: {}, actual gazebo y: {}".format(actual_x, actual_y))
+    print("diff x: {}, diff y: {}".format(abs(expected_x - actual_x), abs(expected_y - actual_y)))
+    print("The average difference between for x: {}, the average difference for y: {}".format(avg_diff_x,avg_diff_y))
+    return curr_x,curr_y,yaw,curr_avg_distance,xy_tpls,gazebo_diff_tpls
 
 def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
     if(yaw == 3.14 or yaw == -3.14):
@@ -100,6 +118,9 @@ def run(template_file, query_file, verifyta_path):
     avg_distance = lidar_sensor.get_avg_distance()
     N = 0
 
+    xy_tpls = []
+    gazebo_diff_tpls = []
+
     environment = generate_environment()
     
     controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(environment, "environment")], 
@@ -117,12 +138,14 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        x,y,yaw,avg_distance = activate_action(x,y,yaw)
+        x,y,yaw,avg_distance, xy_tpls, gazebo_diff_tpls = activate_action(x, y, yaw, xy_tpls, gazebo_diff_tpls)
         seen_x.append(x)
         seen_y.append(y)
         seen_yaw.append(yaw)
         seen_distance.append(avg_distance)
         N = N + 1
+
+
         seen_x, seen_y, seen_yaw, seen_distance, N = calculate_safe_states(seen_x, seen_y, seen_distance, seen_yaw, x, y, yaw, avg_distance, N)
         if x == goal_x and y == goal_y:
             print("found pump")
@@ -159,16 +182,15 @@ def run(template_file, query_file, verifyta_path):
             #print(state)
             controller.insert_state(state)
             RUN_START_TIME = time.time()
-            action, x,y, yaw,step_length = controller.run(
+            action, x,y, yaw, step_length = controller.run(
                 queryfile=query_file,
                 verifyta_path=verifyta_path)
             RUN_END_TIME = time.time()
             K_END_TIME = time.time()
-            print(action,x,y,yaw,step_length)
 
             print("Iteration {} took: {}ms, training took: {} with array lengths of {}".format(k,(K_END_TIME-K_START_TIME)*10**3,(RUN_END_TIME-RUN_START_TIME)*10**3,N))
-            
             #print("actions:",action_seq)
+
 
 
 def init_image_bridge():
