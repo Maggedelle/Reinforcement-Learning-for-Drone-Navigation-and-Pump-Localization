@@ -6,8 +6,9 @@ import sys
 import threading
 import strategoutil as sutil
 import time
+
 sys.path.insert(0, '../')
-from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
+from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher
 import time
 from model_interface import QueueLengthController
 
@@ -86,6 +87,7 @@ def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,dist
 
 
 def run(template_file, query_file, verifyta_path):
+    print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
         state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "seen_distance", "NX", "NY", "NYAW", "NDISTANCE"])
@@ -173,11 +175,19 @@ def init_image_bridge():
     image_bridge_thread = threading.Thread(target=run_bridge)
     image_bridge_thread.start()
 
+def init_clock_bridge():
+    print("Starting clock bridge...")
+    def run_bridge():
+        print("clock bridge started...")
+        os.system('ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock')
+    clock_bridge_thread = threading.Thread(target=run_bridge)
+    clock_bridge_thread.start()
+
 def init_depth_camera_bridge():
     print("Starting depth_camera bridge...")
     def run_depth_camera():
         print("image depth_camera started...")
-        os.system('ros2 run ros_gz_bridge parameter_bridge /depth_camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked')
+        os.system('ros2 run ros_gz_bridge parameter_bridge /depth_camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked --ros-args -r /depth_camera/points:=/cloud')
     depth_camera_brdige_thread = threading.Thread(target=run_depth_camera)
     depth_camera_brdige_thread.start()
 
@@ -188,8 +198,11 @@ def init_rclpy():
 if __name__ == "__main__":
     
     init_rclpy()
+    init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
+    odom_publisher_instance = odom_publisher.FramePublisher()
+    odom_publisher.init(odom_publisher_instance)
     init_depth_camera_bridge()
     #init_image_bridge()
 
@@ -207,5 +220,6 @@ if __name__ == "__main__":
     query_file = os.path.join(base_path, args.query_file)
     while offboard_control_instance.has_aired == False:
         print(offboard_control_instance.vehicle_local_position.z)
+        time.sleep(0.1)
     time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
