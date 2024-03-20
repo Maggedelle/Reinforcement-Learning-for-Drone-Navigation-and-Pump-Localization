@@ -14,7 +14,7 @@ class LidarSensorListener(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
-            depth=1
+            depth=10000
         )   
         self.zone_points = []
 
@@ -22,7 +22,7 @@ class LidarSensorListener(Node):
         self.SPLIT_SIZE = 7
         # Create subscribers
         self.lidar_sensor_subscriber = self.create_subscription(
-            PointCloud2, '/depth_camera/points', self.lidar_sensor_callback, 10)
+            PointCloud2, '/cloud', self.lidar_sensor_callback, 10)
     
       
     def lidar_sensor_callback(self, msg):
