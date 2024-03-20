@@ -11,7 +11,7 @@ sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher
 import time
 from model_interface import QueueLengthController
-
+from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
 global offboard_control_instance
 global odom_publisher_instance
 INITIAL_X = 0.0
@@ -93,7 +93,7 @@ def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "seen_distance", "NX", "NY", "NYAW", "NDISTANCE"])
+        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "seen_distance", "NX", "NY", "NYAW", "NDISTANCE", "environment"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
@@ -102,9 +102,14 @@ def run(template_file, query_file, verifyta_path):
     seen_y = []
     seen_yaw = []
     seen_distance = []
+    avg_distance = lidar_sensor.get_avg_distance()
     N = 0
 
-    avg_distance = lidar_sensor.get_avg_distance()
+    environment = generate_environment()
+    
+    controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(environment, "environment")], 
+                                   point_vars=["x", "y", "yaw"], 
+                                   observables=["action", "x", "y", "yaw", "current_step_length"])
 
     goal_x = 0
     goal_y = -9.5
@@ -152,7 +157,8 @@ def run(template_file, query_file, verifyta_path):
                 "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x][::-1]) + "]"),
                 "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y][::-1]) + "]"),
                 "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw][::-1]) + "]"),
-                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance][::-1]) + "]")
+                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance][::-1]) + "]"),
+                "environment": build_uppaal_environment_array_string(environment)
                 
             }
             #print(state)
