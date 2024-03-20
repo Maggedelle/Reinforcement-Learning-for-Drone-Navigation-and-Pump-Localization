@@ -1,41 +1,40 @@
 import math
 
 from geometry_msgs.msg import TransformStamped
-from px4_msgs.msg import VehicleOdometry
+from px4_msgs.msg import VehicleOdometry, VehicleLocalPosition, VehicleAttitude
 from rosgraph_msgs.msg import Clock
 from nav_msgs.msg import Odometry
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 import threading
 import rclpy
 import numpy as np
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
+from geometry_msgs.msg import Point, Quaternion, Twist, Vector3
 import rclpy
 from rclpy.node import Node
 from builtin_interfaces.msg import Time
-from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster, TransformListener, Buffer
-from turtlesim.msg import Pose
-import ctypes
+from tf2_ros import TransformBroadcaster, TransformListener, Buffer
 
-def quaternion_from_euler(ai, aj, ak):
-    ai /= 2.0
-    aj /= 2.0
-    ak /= 2.0
-    ci = math.cos(ai)
-    si = math.sin(ai)
-    cj = math.cos(aj)
-    sj = math.sin(aj)
-    ck = math.cos(ak)
-    sk = math.sin(ak)
-    cc = ci*ck
-    cs = ci*sk
-    sc = si*ck
-    ss = si*sk
+
+def quaternion_from_euler(roll, pitch, yaw):
+    roll /= 2.0
+    pitch /= 2.0
+    yaw /= 2.0
+    cr = math.cos(roll)
+    sr = math.sin(roll)
+    cp = math.cos(pitch)
+    sp = math.sin(pitch)
+    cy = math.cos(yaw)
+    sy = math.sin(yaw)
+    cc = cr*cy
+    cs = cr*sy
+    sc = sr*cy
+    ss = sr*sy
 
     q = np.empty((4, ))
-    q[0] = cj*sc - sj*cs
-    q[1] = cj*ss + sj*cc
-    q[2] = cj*cs - sj*sc
-    q[3] = cj*cc + sj*ss
+    q[0] = cp*sc - sp*cs
+    q[1] = cp*ss + sp*cc
+    q[2] = cp*cs - sp*sc
+    q[3] = cp*cc + sp*ss
 
     return q
 
@@ -63,6 +62,10 @@ class FramePublisher(Node):
         )
         self.time = Time()
         self.msg = None
+        self.yaw = 0.0
+        self.yaw_stompc = 0.0
+        self.local_position_msg = None
+        self.attitude_q = None
         self.odom_pub = self.create_publisher(Odometry, "odom", qos_profile)
         self.subscription = self.create_subscription(
             VehicleOdometry,
@@ -70,7 +73,11 @@ class FramePublisher(Node):
             self.handle_turtle_pose,
             qos_profile)
         
-
+        self.vehicle_local_position_subscriber = self.create_subscription(
+            VehicleLocalPosition, '/fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_profile)
+        
+        self.vehicle_attitude_subscriber = self.create_subscription(
+            VehicleAttitude, '/fmu/out/vehicle_attitude', self.vehicle_attitude_callback, qos_profile)
         qos_profile_clock = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
@@ -80,7 +87,14 @@ class FramePublisher(Node):
         self.vehicle_command_publisher = self.create_subscription(
             Clock, '/clock', self.clock_callback, qos_profile_clock)
 
-        self.timer = self.create_timer(0.1, self.send_transform)
+        self.timer = self.create_timer(0.05, self.send_transform)
+
+    def vehicle_local_position_callback(self, msg):
+        self.local_position_msg = msg
+        self.yaw = msg.heading
+
+    def vehicle_attitude_callback(self, msg):
+        self.attitude_q = msg.q
     def clock_callback (self, msg):
         self.time = msg.clock
 
@@ -94,7 +108,6 @@ class FramePublisher(Node):
 
         current_time = self.time
        
-
         map_odom_frame = TransformStamped()
         map_odom_frame.header.stamp = current_time
         map_odom_frame.header.frame_id = "map"
@@ -116,18 +129,17 @@ class FramePublisher(Node):
         odom_base_link_frame.child_frame_id = "base_link"
 
 
-        odom_base_link_frame.transform.translation.x = float(self.msg.position[0])
-        odom_base_link_frame.transform.translation.y = float(self.msg.position[1])
+        odom_base_link_frame.transform.translation.x = float(self.local_position_msg.x)
+        odom_base_link_frame.transform.translation.y = float(self.local_position_msg.y * -1)
         odom_base_link_frame.transform.translation.z = 0.0
 
-        q = quaternion_from_euler(float(self.msg.q[0]),float(self.msg.q[1]),float(self.msg.q[2]))
+        q = quaternion_from_euler(0.,0.,self.yaw * -1)
+        odom_base_link_frame.transform.rotation.x = float(self.attitude_q[1])
+        odom_base_link_frame.transform.rotation.y = float(self.attitude_q[2]) * -1
+        odom_base_link_frame.transform.rotation.z = float(self.attitude_q[3]) * -1
+        odom_base_link_frame.transform.rotation.w = float(self.attitude_q[0]) 
 
-        odom_base_link_frame.transform.rotation.x = float(self.msg.q[0])
-        odom_base_link_frame.transform.rotation.y = float(self.msg.q[1]) * -1
-        odom_base_link_frame.transform.rotation.z = float(self.msg.q[2]) * -1
-        odom_base_link_frame.transform.rotation.w = float(self.msg.q[3]) 
-
-        #odom_base_link_frame.transform.rotation.x = 0.0
+        #odom_base_link_frame.transform.rotation.x = 0.0    
         #odom_base_link_frame.transform.rotation.y = 0.0
         #odom_base_link_frame.transform.rotation.z = 0.0
         #odom_base_link_frame.transform.rotation.w = float(self.msg.position[3])
@@ -168,7 +180,10 @@ class FramePublisher(Node):
         base_link_to_sensor_lidar.transform.rotation.z = 0.0
         base_link_to_sensor_lidar.transform.rotation.w = 1.0
 
-        self.tf_broadcaster.sendTransform([map_odom_frame, base_link_to_sensor_lidar, odom_base_link_frame, base_link_base_footprint_frame])
+
+        
+
+        self.tf_broadcaster.sendTransform([base_link_to_sensor_lidar, odom_base_link_frame, base_link_base_footprint_frame])
         # since all odometry is 6DOF we'll need a quaternion created from yaw
         # first, we'll publish the transform over tf
         #self.tf_broadcaster.sendTransform(test)
@@ -214,7 +229,7 @@ class FramePublisher(Node):
         odom.twist.twist = twist
     
         # publish the message
-        self.odom_pub.publish(odom)
+        # self.odom_pub.publish(odom)
 
     def handle_turtle_pose(self, msg):
         self.msg = msg

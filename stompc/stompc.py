@@ -13,6 +13,7 @@ import time
 from model_interface import QueueLengthController
 
 global offboard_control_instance
+global odom_publisher_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
 e = 0.2
@@ -26,6 +27,7 @@ def activate_action(x, y, yaw):
     offboard_control_instance.yaw = yaw
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
+    odom_publisher_instance.yaw_stompc = yaw
 
     time.sleep(2)
     while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
@@ -35,6 +37,7 @@ def activate_action(x, y, yaw):
 
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
+
     return curr_x,curr_y,yaw,curr_avg_distance
 
 def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
