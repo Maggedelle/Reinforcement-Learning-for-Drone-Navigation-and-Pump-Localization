@@ -12,6 +12,9 @@ double seen_x[//TAG_NX] = //TAG_seen_x;
 double seen_y[//TAG_NY] = //TAG_seen_y;
 double seen_yaw[//TAG_NYAW] = //TAG_seen_yaw;
 double seen_distance[//TAG_NDISTANCE] = //TAG_seen_distance;
+
+//TAG_environment;
+
 int drone_state = 0;
 
 
