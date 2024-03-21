@@ -104,10 +104,11 @@ def get_avg_distance():
     print("Average zone distances:",avg_zone_dists)
     #TODO: Skal det laves sådan at det ikke er split_size den tager efter her, siden der kan være færre zoner end 
     #      forventet pga. det med nogle zoner er fuld af inf?
-    if SPLIT_SIZE % 2 == 0:
-        return_dist = (avg_zone_dists[(SPLIT_SIZE//2)-1] + avg_zone_dists[SPLIT_SIZE//2]) / 2
+    zones_found = len(avg_zone_dists)
+    if zones_found % 2 == 0:
+        return_dist = (avg_zone_dists[(zones_found//2)-1] + avg_zone_dists[zones_found//2]) / 2
     else:
-        return_dist = avg_zone_dists[SPLIT_SIZE//2]
+        return_dist = avg_zone_dists[zones_found//2]
 
     print("Test print:",avg_zone_dists[1:-1])
     if any(x < 2 for x in avg_zone_dists[1:-1]):
