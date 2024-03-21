@@ -54,7 +54,16 @@ def process_map_data():
 
     with open('matrix.txt', 'w') as testfile:
         for row in matrix:
-            testfile.write(', '.join([str(a) for a in row]) + '\n')
+            string_row = []
+            for a in row:
+                if a == -1:
+                    string_row.append("?")
+                elif a == 0:
+                    string_row.append("+")
+                elif a == 100:
+                    string_row.append("-")
+            testfile.write(', '.join(string_row) + '\n')
+
 
 
 

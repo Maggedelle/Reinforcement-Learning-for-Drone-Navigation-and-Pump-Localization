@@ -15,6 +15,7 @@ from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
 global offboard_control_instance
 global odom_publisher_instance
+global map_drone_tf_listener_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
 e = 0.2
@@ -214,6 +215,8 @@ if __name__ == "__main__":
     offboard_control.init(offboard_control_instance)
     odom_publisher_instance = odom_publisher.FramePublisher()
     odom_publisher.init(odom_publisher_instance)
+    #map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
+    #vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
     init_depth_camera_bridge()
     #init_image_bridge()
 
