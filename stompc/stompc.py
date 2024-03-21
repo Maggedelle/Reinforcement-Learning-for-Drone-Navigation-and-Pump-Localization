@@ -8,7 +8,8 @@ import strategoutil as sutil
 import time
 
 sys.path.insert(0, '../')
-from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher
+
+from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
@@ -38,6 +39,7 @@ def activate_action(x, y, yaw):
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
 
+    map_processing.process_map_data()
     return curr_x,curr_y,yaw,curr_avg_distance
 
 def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
