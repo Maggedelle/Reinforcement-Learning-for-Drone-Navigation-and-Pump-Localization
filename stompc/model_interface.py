@@ -29,7 +29,7 @@ class QueueLengthController(StrategoController):
 
 
     def generate_strategy_query(self, state_vars, point_vars):
-        min_e = "(distance_to_goal + time)"
+        min_e = "(time)"
         time_to_reach_stop_condition = "1000"
         
         stop_condition = "(DroneController.target || time >= 10)"

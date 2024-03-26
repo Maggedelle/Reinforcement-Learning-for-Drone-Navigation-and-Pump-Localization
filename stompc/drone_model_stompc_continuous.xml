@@ -2,20 +2,16 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// State
-double x = //TAG_x;
-double y = //TAG_y;
+int x = //TAG_x;
+int y = //TAG_y;
 double yaw = //TAG_yaw;
-double avg_distance = //TAG_avg_distance;
+int map_width = //TAG_width_map;
+int map_height = //TAG_height_map;
+double map_granularity = //TAG_granularity_map;
+//TAG_map;
+
 int current_step_length = 0;
 
-double seen_x[//TAG_NX] = //TAG_seen_x;
-double seen_y[//TAG_NY] = //TAG_seen_y;
-double seen_yaw[//TAG_NYAW] = //TAG_seen_yaw;
-double seen_distance[//TAG_NDISTANCE] = //TAG_seen_distance;
-
-//TAG_environment;
-
-int drone_state = 0;
 
 
 
@@ -35,17 +31,19 @@ int drone_state = 0;
 //          6: Rotate a full PI, 180 degrees &lt;- not used currently.
 int action = -1;
 
-// Goal
-double goal_x = //TAG_goal_x; 
-double goal_y = //TAG_goal_y;
-
 // Utilitise
 const double e = 0.5;
 const double PI_upper = 3.14;
 const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
+const double safety_range = 0.1; // in meters
 
+// Drone specs
+const double drone_diameter = 0.6; // in meters
+
+
+// Cost
 const double turning_cost = 1.5;
 
 const double closest_safe_distance = 1.0;
@@ -59,83 +57,106 @@ broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
 broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
 
-double distance_to_goal = 1;
 
-bool has_been_in_partial_state(double x, double y) {
-    int i = 0;
-    for(i = 0; i &lt; //TAG_NLOOP_PS; i++) {
-        if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) ) {
-            return true;
-        }
-    }
 
-    return false;
-}
-
-double measured_distance() {
-    int i = 0;
-    int has_seen_this_state = 0;
-    for(i = 0; i &lt; //TAG_NLOOP; i++) {
-        if((x - e &lt; seen_x[i] &amp;&amp; x + e &gt; seen_x[i]) &amp;&amp; (y - e &lt; seen_y[i] &amp;&amp; y + e &gt; seen_y[i]) &amp;&amp; (yaw - e &lt; seen_yaw[i] &amp;&amp; yaw + e &gt; seen_yaw[i]) ) {
-            return seen_distance[i];
-        }
-    }
-
-    return 2.0;
-}</declaration>
+</declaration>
 	<template>
 		<name x="5" y="5">DroneController</name>
 		<declaration>clock c;
 
 
 
-bool check_distance(int step_length) {
-    if(avg_distance - step_length &lt; closest_safe_distance) {
-        return 0;
-    }
-    return 1;
-}
 
-bool check_goal() {
-    if((x - e &lt; goal_x &amp;&amp; x + e &gt; goal_x) &amp;&amp; (y - e &lt; goal_y &amp;&amp; y + e &gt; goal_y)) {
-        return 1;
-    }
-
-    return 0; 
-}
-
-
-
-//          0: West,
-//          1: South,
-//          2: East,
-//          3: North
+//          0: West (+y),
+//          1: South (+x)
+//          2: East (-y),
+//          3: North (-x)
 bool can_move(int action, int step_length) {
+    int N_cells_in_dir = fint(step_length / map_granularity);
+    int drone_cells_to_cover = fint((drone_diameter + safety_range) / map_granularity);
+
+    if(drone_cells_to_cover % 2 == 0) {
+        drone_cells_to_cover += 1;
+    }
 
     if(action == 0) {
-        if((yaw == PI_half_pos) &amp;&amp; check_distance(step_length) || has_been_in_partial_state(x, y + step_length)) {
-            return true;
-        }else {
+        int lower_bound_x = x - (drone_cells_to_cover / 2);
+        int upper_bound_x = x +  (drone_cells_to_cover / 2);
+        int upper_bound_y = y + N_cells_in_dir;
+        int i;
+        int j;
+
+        if(lower_bound_x &lt; 0 || upper_bound_x &gt; map_width || upper_bound_y &gt; map_height) {
             return false;
         }
+        for(i = lower_bound_x; i &lt;= upper_bound_x; i++) {
+            for(j = y + 1; j &lt;= upper_bound_y; j++) {
+                if( map[j][i] == 100 || map[j][i] == -1) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }else if(action == 1) {
-        if((yaw == 0 &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x + step_length, y)) {
-            return true;
-        }else {
+
+        int lower_bound_y = y - (drone_cells_to_cover / 2);
+        int upper_bound_y = y +  (drone_cells_to_cover / 2);
+        int upper_bound_x = x + N_cells_in_dir;
+
+        int i;
+        int j;
+
+         if(lower_bound_y &lt; 0 || upper_bound_y &gt; map_height || upper_bound_x &gt; map_width) {
             return false;
         }
+        for(i = x + 1; i &lt;= upper_bound_x; i++) {
+            for(j = lower_bound_y; j &lt;= upper_bound_y; j++) {
+                if(map[j][i] == 100 || map[j][i] == -1) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }else if(action == 2) {
-        if((yaw == PI_half_neg &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x, y - step_length)) {
-            return true;
-        }else {
+
+        int lower_bound_x = x - (drone_cells_to_cover / 2);
+        int upper_bound_x = x +  (drone_cells_to_cover / 2);
+        int upper_bound_y = y - N_cells_in_dir;
+
+        int i;
+        int j;
+
+        if(lower_bound_x &lt; 0 || upper_bound_x &gt; map_width || upper_bound_y &gt; map_height) {
             return false;
         }
+        for(i = lower_bound_x; i &lt;= upper_bound_x; i++) {
+            for(j = y - 1; j &gt;= upper_bound_y; j--) {
+                if(map[j][i] == 100 || map[j][i] == -1) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }else if(action == 3) {
-        if(((yaw == PI_upper || yaw == PI_lower) &amp;&amp; check_distance(step_length)) || has_been_in_partial_state(x - step_length, y)) {
-            return true;
-        }else {
+
+        int lower_bound_y = y - (drone_cells_to_cover / 2);
+        int upper_bound_y = y +  (drone_cells_to_cover / 2);
+        int upper_bound_x = x - N_cells_in_dir;
+
+        int i;
+        int j;
+
+       if(lower_bound_y &lt; 0 ||upper_bound_y &gt; map_height || upper_bound_x &gt; map_width) {
             return false;
         }
+        for(i = x - 1; i &gt;= upper_bound_x; i--) {
+            for(j = lower_bound_y; j &lt;=upper_bound_y; j++) {
+                if(map[j][i] == 100 || map[j][i] == -1) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     return false;
@@ -163,12 +184,12 @@ bool can_move(int action, int step_length) {
 		<transition id="id6">
 			<source ref="id3"/>
 			<target ref="id0"/>
-			<label kind="guard" x="739" y="144">check_goal() == 0</label>
+			<label kind="guard" x="833" y="136">0 == 0</label>
 		</transition>
 		<transition id="id7">
 			<source ref="id3"/>
 			<target ref="id4"/>
-			<label kind="guard" x="901" y="-17">check_goal() == 1</label>
+			<label kind="guard" x="901" y="-17">0 == 1</label>
 		</transition>
 		<transition id="id8" controllable="false">
 			<source ref="id1"/>
@@ -255,9 +276,6 @@ void turn_drone(double yaw_dx) {
     }else {
         yaw = yaw + yaw_dx;
     }
-
-    avg_distance = measured_distance();
-    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2))) + turning_cost;
 }</declaration>
 		<location id="id16" x="-59" y="-136">
 			<name x="-85" y="-119">waiting</name>
@@ -335,11 +353,9 @@ turn_drone(half_PI_left)</label>
 		<declaration>
 clock c;
 
-void move(double dir_x, double dir_y) {
-    x = x + dir_x;
-    y = y + dir_y;
-    avg_distance = measured_distance();
-    distance_to_goal = distance_to_goal + sqrt((pow(goal_x - x,2)+pow(goal_y -y,2)));
+void move(double dir_x, double dir_y) { 
+    x = x + fint((dir_x / map_granularity));
+    y = y + fint((dir_y / map_granularity));
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>

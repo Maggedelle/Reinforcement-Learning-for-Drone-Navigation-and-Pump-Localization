@@ -13,49 +13,72 @@ from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
+from utils import turn_drone
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
+
+half_PI_right = 1.57   # 90 degrees right
+half_PI_left = -1.57   # 90 degrees left
+full_PI_turn = 3.14    # 180 degress turn
 e = 0.2
 uppaa_e = 0.5
-def activate_action(x, y, yaw):
-      
-    drone_x = x
-    drone_y = y
-    offboard_control_instance.x = drone_x
-    offboard_control_instance.y = drone_y
+def activate_action(action):
+    x = float(vehicle_odometry.get_drone_pos_x())
+    y = float(vehicle_odometry.get_drone_pos_y())
+    yaw = offboard_control_instance.yaw
+    match action:
+        case 0:
+            y-=1
+        case 1:
+            x+=1
+        case 2:
+            y+=1
+        case 3:
+            x-=1
+        case 4:
+            yaw = turn_drone(yaw, half_PI_left)
+        case 5:
+            yaw = turn_drone(yaw, half_PI_right)
+        case 6:
+            yaw = turn_drone(yaw,full_PI_turn)
+        case _:
+            print("unkown action")
+            map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x, y)
+            return map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, map_granularity
+
+
+    offboard_control_instance.x = x
+    offboard_control_instance.y = y
     offboard_control_instance.yaw = yaw
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
-    odom_publisher_instance.yaw_stompc = yaw
 
     time.sleep(2)
-    while((drone_x-e > curr_x or curr_x > drone_x+e) or (drone_y-e > curr_y or curr_y > drone_y+e)):
+    while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
-    curr_avg_distance = lidar_sensor.get_avg_distance()
-    print("Distance: ",curr_avg_distance)
+    map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(curr_x, curr_y)
 
-    map,map_drone_index_x,map_drone_index_y, map_width, map_height = map_processing.process_map_data(curr_x, curr_y)
-
-    return map,map_drone_index_x,map_drone_index_y, map_width, map_height,yaw
+    return map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, map_granularity
 
 
 def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "yaw", "map_width","map_height", "map"])
+        state_names=["x", "y", "yaw", "map_swidth","height_map", "map", "granularity_map"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = 0.0
+    action = -1
     N = 0
-    map,map_drone_index_x,map_drone_index_y, map_width, map_height = map_processing.process_map_data(x,y)
+    map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x,y)
     controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(map, "map")], 
                                    point_vars=["x", "y", "yaw"], 
                                    observables=["action", "x", "y", "yaw", "current_step_length"])
@@ -70,7 +93,7 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        map,map_drone_index_x,map_drone_index_y, map_width, map_height,yaw = activate_action(x,y,yaw)
+        map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, _ = activate_action(action)
 
         if k % K == 0:
             # at each MPC step we want a clean template copy
@@ -82,9 +105,10 @@ def run(template_file, query_file, verifyta_path):
                 "x": map_drone_index_x,
                 "y": map_drone_index_y,
                 "yaw":  yaw,
-                "map": build_uppaal_2d_array_string(map),
-                "map_width": map_width,
-                "map_height": map_height
+                "map": build_uppaal_2d_array_string("int", "map", map),
+                "width_map": map_width,
+                "height_map": map_height,
+                "granularity_map": map_granularity
             }
             #print(state)
             controller.insert_state(state)

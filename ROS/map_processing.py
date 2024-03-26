@@ -43,15 +43,16 @@ def process_map_data(drone_x, drone_y):
     print("map service called")
     width = msg.info.width
     height = msg.info.height
+    granularity = round(msg.info.resolution,2)
     matrix = []
     row = []
     data = msg.data
-    x_offset = abs(math.floor((msg.info.origin.position.x / msg.info.resolution)))
-    y_offset = abs(math.floor((msg.info.origin.position.y / msg.info.resolution)))
+    x_offset = abs(math.floor((msg.info.origin.position.x / granularity)))
+    y_offset = abs(math.floor((msg.info.origin.position.y / granularity)))
     print(msg.info.origin.position.x, msg.info.origin.position.y)
     print(x_offset,y_offset)
-    x_index = math.floor((drone_x) / msg.info.resolution) + x_offset
-    y_index = math.floor(((drone_y * -1)) / msg.info.resolution) + y_offset
+    x_index = math.floor((drone_x) / granularity) + x_offset
+    y_index = math.floor(((drone_y * -1)) / granularity) + y_offset
 
     print(x_index, y_index)
     for i in range(0, len(data), width):
@@ -82,7 +83,7 @@ def process_map_data(drone_x, drone_y):
             y = 0
             
             
-    return matrix, x_index, y_index, width, height
+    return matrix, x_index, y_index, width, height, granularity
 
 
 
