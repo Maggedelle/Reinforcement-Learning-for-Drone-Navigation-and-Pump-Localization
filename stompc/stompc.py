@@ -12,7 +12,7 @@ sys.path.insert(0, '../')
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
-from environment import generate_environment, build_uppaal_environment_array_string, unpack_environment
+from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
@@ -40,83 +40,27 @@ def activate_action(x, y, yaw):
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
 
-    map_processing.process_map_data(curr_x, curr_y)
+    map,map_drone_index_x,map_drone_index_y, map_width, map_height = map_processing.process_map_data(curr_x, curr_y)
 
-    return curr_x,curr_y,yaw,curr_avg_distance
-
-def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
-    if(yaw == 3.14 or yaw == -3.14):
-        #-x
-        while(distance > 2.0):
-            distance -= uppaa_e
-            x-=uppaa_e
-            seen_x.append(x)
-            seen_y.append(y)
-            seen_yaw.append(yaw)
-            seen_distances.append(distance)
-            N+=1
-        
-    elif(yaw == 0):
-        #+x
-        while(distance > 2.0):
-            distance -= uppaa_e
-            x+=uppaa_e
-            seen_x.append(x)
-            seen_y.append(y)
-            seen_yaw.append(yaw)
-            seen_distances.append(distance)
-            N+=1
-
-
-    elif(yaw == -1.57):
-        #-y
-        while(distance > 2.0):
-            distance -= uppaa_e
-            y-=uppaa_e
-            seen_x.append(x)
-            seen_y.append(y)
-            seen_yaw.append(yaw)
-            seen_distances.append(distance)
-            N+=1
-
-    elif(yaw == 1.57):
-        #+y
-        while(distance > 2.0):
-            distance -= uppaa_e
-            y+=uppaa_e
-            seen_x.append(x)
-            seen_y.append(y)
-            seen_yaw.append(yaw)
-            seen_distances.append(distance)
-            N+=1
-
-    return seen_x, seen_y, seen_yaw, seen_distances, N
+    return map,map_drone_index_x,map_drone_index_y, map_width, map_height,yaw
 
 
 def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "goal_x", "goal_y", "avg_distance", "yaw", "NLOOP", "seen_x", "seen_y", "seen_yaw", "seen_distance", "NX", "NY", "NYAW", "NDISTANCE", "environment"])
+        state_names=["x", "y", "yaw", "map_width","map_height", "map"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = 0.0
-    seen_x = []
-    seen_y = []
-    seen_yaw = []
-    seen_distance = []
-    avg_distance = lidar_sensor.get_avg_distance()
     N = 0
-
-    environment = generate_environment()
-    
-    controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(environment, "environment")], 
+    map,map_drone_index_x,map_drone_index_y, map_width, map_height = map_processing.process_map_data(x,y)
+    controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(map, "map")], 
                                    point_vars=["x", "y", "yaw"], 
                                    observables=["action", "x", "y", "yaw", "current_step_length"])
 
-    goal_x = 0
-    goal_y = -9.5
+
     L = 1000 # simulation length
     K = 1  # every K we will do MPC
     for k in range(L):
@@ -126,18 +70,7 @@ def run(template_file, query_file, verifyta_path):
         #handle_action(next_action);
         
         #<- readings fra diverse sensor
-        x,y,yaw,avg_distance = activate_action(x,y,yaw)
-        seen_x.append(x)
-        seen_y.append(y)
-        seen_yaw.append(yaw)
-        seen_distance.append(avg_distance)
-        N = N + 1
-        seen_x, seen_y, seen_yaw, seen_distance, N = calculate_safe_states(seen_x, seen_y, seen_distance, seen_yaw, x, y, yaw, avg_distance, N)
-        if x == goal_x and y == goal_y:
-            print("found pump")
-            break
-        # report
-        #print("Step: {}, x: {} cars, y: {} cars".format(k, x, y))
+        map,map_drone_index_x,map_drone_index_y, map_width, map_height,yaw = activate_action(x,y,yaw)
 
         if k % K == 0:
             # at each MPC step we want a clean template copy
@@ -146,24 +79,12 @@ def run(template_file, query_file, verifyta_path):
             
             # insert current state into simulation template
             state = {
-                "x": x,
-                "y": y,
+                "x": map_drone_index_x,
+                "y": map_drone_index_y,
                 "yaw":  yaw,
-                "avg_distance":avg_distance,
-                "goal_x": goal_x,
-                "goal_y": goal_y,
-                "NLOOP_PS":N,
-                "NLOOP": N,
-                "NY": N,
-                "NX": N,
-                "NYAW": N,
-                "NDISTANCE": N,
-                "seen_x": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_x][::-1]) + "]"),
-                "seen_y": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_y][::-1]) + "]"),
-                "seen_yaw": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_yaw][::-1]) + "]"),
-                "seen_distance": sutil.array_to_stratego("[" + ','.join([str(x) for x in seen_distance][::-1]) + "]"),
-                "environment": build_uppaal_environment_array_string(environment)
-                
+                "map": build_uppaal_2d_array_string(map),
+                "map_width": map_width,
+                "map_height": map_height
             }
             #print(state)
             controller.insert_state(state)

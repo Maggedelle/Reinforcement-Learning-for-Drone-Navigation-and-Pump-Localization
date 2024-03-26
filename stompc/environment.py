@@ -26,12 +26,14 @@ def generate_environment():
     return environment
 
 
-def build_uppaal_environment_array_string(environment):
-    environment_array_string = "int environment[{}][{}] = ".format(len(environment), len(environment[0]))
+
+
+def build_uppaal_2d_array_string(type, name, array):
+    environment_array_string = "{} {}[{}][{}] = ".format(type, name, len(array), len(array[0]))
     environment_array_string += "{\n"
 
     lst_strings = []
-    for lst_ele in environment:
+    for lst_ele in array:
         arr_string = "  {"
         arr_string += ','.join([str(x) for x in lst_ele])
         arr_string += "}"

@@ -42,6 +42,7 @@ def process_map_data(drone_x, drone_y):
 
     print("map service called")
     width = msg.info.width
+    height = msg.info.height
     matrix = []
     row = []
     data = msg.data
@@ -81,7 +82,7 @@ def process_map_data(drone_x, drone_y):
             y = 0
             
             
-    return msg.info.origin, msg.info.resolution
+    return matrix, x_index, y_index, width, height
 
 
 
