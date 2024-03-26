@@ -6,7 +6,7 @@ import sys
 import threading
 import strategoutil as sutil
 import time
-
+import math
 sys.path.insert(0, '../')
 
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
@@ -40,7 +40,8 @@ def activate_action(x, y, yaw):
     curr_avg_distance = lidar_sensor.get_avg_distance()
     print("Distance: ",curr_avg_distance)
 
-    map_processing.process_map_data()
+    map_processing.process_map_data(curr_x, curr_y)
+
     return curr_x,curr_y,yaw,curr_avg_distance
 
 def calculate_safe_states(seen_x, seen_y, seen_distances, seen_yaw, x,y,yaw,distance, N):
@@ -215,8 +216,8 @@ if __name__ == "__main__":
     offboard_control.init(offboard_control_instance)
     odom_publisher_instance = odom_publisher.FramePublisher()
     odom_publisher.init(odom_publisher_instance)
-    #map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
-    #vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
+    map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
+    vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
     init_depth_camera_bridge()
     #init_image_bridge()
 

@@ -54,7 +54,7 @@ class MapDroneFrameListener(Node):
     def __init__(self):
         super().__init__('map_drone_tf2_frame_listener')
 
-        self.target_frame = self.declare_parameter('target_frame', 'odom').get_parameter_value().string_value
+        self.target_frame = self.declare_parameter('target_frame', 'map').get_parameter_value().string_value
         self.transform = TransformStamped()
 
         self.tf_buffer = Buffer()

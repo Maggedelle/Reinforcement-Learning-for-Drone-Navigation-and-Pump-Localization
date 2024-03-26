@@ -5,7 +5,7 @@ from map_msgs.msg import OccupancyGridUpdate
 from nav_msgs.srv import GetMap
 import numpy as np
 import threading
-
+import math
 class MapServiceCaller(Node):
     def __init__(self) -> None:
         super().__init__('map_listener')
@@ -13,7 +13,7 @@ class MapServiceCaller(Node):
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
         self.req = GetMap.Request()
-    
+
 
     def send_request(self):
         self.future = self.cli.call_async(self.req)
@@ -21,7 +21,7 @@ class MapServiceCaller(Node):
 
 
 
-def process_map_data():
+def process_map_data(drone_x, drone_y):
 
     msg = None
     map_service_instance = MapServiceCaller()
@@ -45,24 +45,43 @@ def process_map_data():
     matrix = []
     row = []
     data = msg.data
+    x_offset = abs(math.floor((msg.info.origin.position.x / msg.info.resolution)))
+    y_offset = abs(math.floor((msg.info.origin.position.y / msg.info.resolution)))
+    print(msg.info.origin.position.x, msg.info.origin.position.y)
+    print(x_offset,y_offset)
+    x_index = math.floor((drone_x) / msg.info.resolution) + x_offset
+    y_index = math.floor(((drone_y * -1)) / msg.info.resolution) + y_offset
 
-    print(len(data))
-    print(width * msg.info.height)
+    print(x_index, y_index)
     for i in range(0, len(data), width):
         row = data[i:i + width]
         matrix.append(row)
 
+
+    x = 0
+    y = 0
+    print("drone x,y in map: ({},{})".format(x_index,y_index))
     with open('matrix.txt', 'w') as testfile:
         for row in matrix:
+            x=x+1
             string_row = []
             for a in row:
-                if a == -1:
+                y=y+1
+                if x == y_offset and y == x_offset:
+                    string_row.append("M")
+                if x == y_index and y == x_index:
+                    string_row.append("*")
+                elif a == -1:
                     string_row.append("?")
                 elif a == 0:
                     string_row.append("+")
                 elif a == 100:
                     string_row.append("-")
             testfile.write(', '.join(string_row) + '\n')
+            y = 0
+            
+            
+    return msg.info.origin, msg.info.resolution
 
 
 
