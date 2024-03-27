@@ -20,21 +20,21 @@ class QueueLengthController(StrategoController):
             sutil.insert_to_modelfile(
                 self.simulation_file, tag, value)
             
-    def generate_query_file(self, state_vars, point_vars, observables):
-        strategy = self.generate_strategy_query(state_vars, point_vars)
+    def generate_query_file(self, optimize, learning_param, state_vars, point_vars, observables):
+        strategy = self.generate_strategy_query(optimize, learning_param, state_vars, point_vars)
         simulate = self.generate_simulate_query(observables)
         f = open("query.q", "w")
         f.write(strategy +"\n \n" + simulate)
         f.close()
 
 
-    def generate_strategy_query(self, state_vars, point_vars):
-        min_e = "(time)"
+    def generate_strategy_query(self,optimize, learning_param, state_vars, point_vars):
+
         time_to_reach_stop_condition = "1000"
         
         stop_condition = "(DroneController.target || time >= 10)"
 
-        strategy_string = "strategy opt = minE{} [<={}]".format(min_e, time_to_reach_stop_condition)
+        strategy_string = "strategy opt = {}({}) [<={}]".format(optimize, learning_param, time_to_reach_stop_condition)
         strategy_string += "{" + ",".join(state_vars) + "}"
         strategy_string += "->"
         strategy_string += "{" + ",".join(point_vars) + "}"

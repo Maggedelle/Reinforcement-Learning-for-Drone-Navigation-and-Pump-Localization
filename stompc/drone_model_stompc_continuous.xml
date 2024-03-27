@@ -12,11 +12,6 @@ double map_granularity = //TAG_granularity_map;
 
 int current_step_length = 0;
 
-
-
-
-
-
 // Actions, interger values in the interval [-1,6] corrosponds to an action
 //    -1: No action
 //
@@ -33,14 +28,17 @@ int action = -1;
 
 // Utilitise
 const double e = 0.5;
+const double e_yaw = 0.2;
 const double PI_upper = 3.14;
 const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
-const double safety_range = 0.1; // in meters
 
-// Drone specs
-const double drone_diameter = 0.6; // in meters
+// Drone specs, all values in meters
+const double drone_diameter = 0.6;
+const double safety_range = 0.3;
+const int laser_range = 4;
+const int laser_range_diameter = 2;
 
 
 // Cost
@@ -52,14 +50,152 @@ const double half_PI_right = 1.57;   // 90 degrees right
 const double half_PI_left = -1.57;   // 90 degrees left
 const double full_PI_turn = 3.14;    // 180 degress turn
 
+// Rewards / training
+//          0: West / yaw = -1.57 (+y),
+//          1: South / yaw = 0 (+x)
+//          2: East / yaw = 1.57 (-y),
+//          3: North / yaw = 3.14 or -3.14 (-x)
+
+const int discovery_reward = 1;
+const bool open = //TAG_training_param;
+int accum_reward = 0;
+
+void calculate_reward() {
+    int cells_updated = 0; // The number of cells that have been discovered / changed from unknown
+    int N_forward_cells_to_update = fint(laser_range / map_granularity); // Gives us the number of drones to check in front of the drone
+    int N_diameter_cells_to_update = fint(laser_range_diameter / map_granularity); // Gives us the number of cells to update in to the left and right of the drone
+
+    if(N_forward_cells_to_update % 2 == 0) {
+        N_forward_cells_to_update += 1;
+    }
+
+    if(N_diameter_cells_to_update % 2 == 0) {
+        N_diameter_cells_to_update += 1;
+    }
+
+    if(PI_half_neg - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_half_neg + e_yaw) { // exploring in positive y direction
+        int lower_bound_x = x - (N_diameter_cells_to_update / 2);
+        int upper_bound_x = x + (N_diameter_cells_to_update / 2);
+        int upper_bound_y = y + N_forward_cells_to_update;
+
+        int i;
+        int j;
+
+        if(lower_bound_x &lt; 0) {
+            lower_bound_x = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
+        }
+        if(upper_bound_x &gt; map_width){
+            upper_bound_x = map_width; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+        if(upper_bound_y &gt; map_height){
+            upper_bound_y = map_height; // if we are reaching a point where the range of the drone would go outside the map in the posivtive direction, we set the upper bound for y to map height
+        }
+
+        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
+            for(j = y + 1; j &lt; upper_bound_y; j++) {
+                if(map[j][i] == -1) {
+                    map[j][i] = 0;
+                    accum_reward += discovery_reward;
+                    if(!open){
+                        j = upper_bound_y;
+                    }
+                }
+            }
+        }
+    }else if(0 - e_yaw &lt; yaw &amp;&amp; yaw &lt; 0 + e_yaw) { // exploring in positive x direction
+        int lower_bound_y = y - (N_diameter_cells_to_update / 2);
+        int upper_bound_y = y +  (N_diameter_cells_to_update / 2);
+        int upper_bound_x = x + N_forward_cells_to_update;
+
+        int i;
+        int j;
+
+        if(lower_bound_y &lt; 0) {
+            lower_bound_y = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
+        }
+        if(upper_bound_y &gt; map_height){
+            upper_bound_y = map_height; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+        if(upper_bound_x &gt; map_width){
+            upper_bound_x = map_width; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+
+        for(i = x + 1; i &lt; upper_bound_x; i++) {
+            for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
+                if(map[j][i] == -1) {
+                    map[j][i] = 0;
+                    accum_reward += discovery_reward;
+                    if(!open){
+                        j = upper_bound_y;
+                    }
+                }
+            }
+        }
+    }else if(PI_half_pos - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_half_pos + e_yaw) { // exploring in negative y direction
+        int lower_bound_x = x - (N_diameter_cells_to_update / 2);
+        int upper_bound_x = x + (N_diameter_cells_to_update / 2);
+        int upper_bound_y = y - N_forward_cells_to_update;
+
+        int i;
+        int j;
+
+        if(lower_bound_x &lt; 0) {
+            lower_bound_x = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
+        }
+        if(upper_bound_x &gt; map_width){
+            upper_bound_x = map_width; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+        if(upper_bound_y &lt; 0){
+            upper_bound_y = 0; // if we are reaching a point where the range of the drone would go outside the map in the negative direction, we set the upper bound for y to 0
+        }
+
+        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
+            for(j = y - 1; j &gt;= upper_bound_y; j--) {
+                if(map[j][i] == -1) {
+                    map[j][i] = 0;
+                    accum_reward += discovery_reward;
+                    if(!open) {
+                        j = upper_bound_y - 1;
+                    }
+                }
+            }
+        }
+    }else if((PI_lower - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_lower + e_yaw) &amp;&amp; (PI_upper - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_upper + e_yaw)) { // exploring in negative x direction
+        int lower_bound_y = y - (N_diameter_cells_to_update / 2);
+        int upper_bound_y = y +  (N_diameter_cells_to_update / 2);
+        int upper_bound_x = x - N_forward_cells_to_update;
+
+        int i;
+        int j;
+
+        if(lower_bound_y &lt; 0) {
+            lower_bound_y = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
+        }
+        if(upper_bound_y &gt; map_height){
+            upper_bound_y = map_height; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+        if(upper_bound_x &lt; 0){
+            upper_bound_x = 0; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
+        }
+
+        for(i = x - 1; i &gt;= upper_bound_x; i--) {
+            for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
+                if(map[j][i] == -1) {
+                    map[j][i] = 0;
+                    accum_reward += discovery_reward;
+                    if(!open) {
+                        j = upper_bound_y;
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Channels
 broadcast chan action_completed;
 broadcast chan move_north, move_south, move_east, move_west;
-broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;
-
-
-
-</declaration>
+broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;</declaration>
 	<template>
 		<name x="5" y="5">DroneController</name>
 		<declaration>clock c;
@@ -83,6 +219,7 @@ bool can_move(int action, int step_length) {
         int lower_bound_x = x - (drone_cells_to_cover / 2);
         int upper_bound_x = x +  (drone_cells_to_cover / 2);
         int upper_bound_y = y + N_cells_in_dir;
+
         int i;
         int j;
 
@@ -98,7 +235,6 @@ bool can_move(int action, int step_length) {
         }
         return true;
     }else if(action == 1) {
-
         int lower_bound_y = y - (drone_cells_to_cover / 2);
         int upper_bound_y = y +  (drone_cells_to_cover / 2);
         int upper_bound_x = x + N_cells_in_dir;
@@ -118,7 +254,6 @@ bool can_move(int action, int step_length) {
         }
         return true;
     }else if(action == 2) {
-
         int lower_bound_x = x - (drone_cells_to_cover / 2);
         int upper_bound_x = x +  (drone_cells_to_cover / 2);
         int upper_bound_y = y - N_cells_in_dir;
@@ -138,7 +273,6 @@ bool can_move(int action, int step_length) {
         }
         return true;
     }else if(action == 3) {
-
         int lower_bound_y = y - (drone_cells_to_cover / 2);
         int upper_bound_y = y +  (drone_cells_to_cover / 2);
         int upper_bound_x = x - N_cells_in_dir;
@@ -158,7 +292,6 @@ bool can_move(int action, int step_length) {
         }
         return true;
     }
-
     return false;
 }</declaration>
 		<location id="id0" x="892" y="238">
@@ -200,7 +333,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id9" controllable="false">
 			<source ref="id2"/>
 			<target ref="id3"/>
-			<label kind="synchronisation" x="671" y="68">action_completed?</label>
+			<label kind="synchronisation" x="680" y="59">action_completed?</label>
 			<nail x="620" y="85"/>
 		</transition>
 		<transition id="id10">
@@ -276,6 +409,8 @@ void turn_drone(double yaw_dx) {
     }else {
         yaw = yaw + yaw_dx;
     }
+
+    calculate_reward();
 }</declaration>
 		<location id="id16" x="-59" y="-136">
 			<name x="-85" y="-119">waiting</name>
@@ -356,6 +491,8 @@ clock c;
 void move(double dir_x, double dir_y) { 
     x = x + fint((dir_x / map_granularity));
     y = y + fint((dir_y / map_granularity));
+
+    calculate_reward();
 }</declaration>
 		<location id="id26" x="238" y="110">
 			<name x="228" y="76">waiting</name>

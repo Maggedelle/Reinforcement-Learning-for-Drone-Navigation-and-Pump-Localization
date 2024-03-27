@@ -71,16 +71,20 @@ def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "yaw", "map_swidth","height_map", "map", "granularity_map"])
+        state_names=["x", "y", "yaw", "map_swidth","height_map", "map", "granularity_map", "training_param"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = 0.0
     action = -1
     N = 0
+    open_training = "0"
+    optimize = "maxE"
+    learning_param = "accum_reward"
     map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x,y)
-    controller.generate_query_file(state_vars=["DroneController.DescisionState", unpack_environment(map, "map")], 
-                                   point_vars=["x", "y", "yaw"], 
+    controller.generate_query_file(optimize, learning_param,
+                                   state_vars=["DroneController.DescisionState", unpack_environment(map, "map"), "x", "y"], 
+                                   point_vars=["yaw"], 
                                    observables=["action", "x", "y", "yaw", "current_step_length"])
 
 
@@ -108,7 +112,8 @@ def run(template_file, query_file, verifyta_path):
                 "map": build_uppaal_2d_array_string("int", "map", map),
                 "width_map": map_width,
                 "height_map": map_height,
-                "granularity_map": map_granularity
+                "granularity_map": map_granularity,
+                "training_param": open_training
             }
             #print(state)
             controller.insert_state(state)
