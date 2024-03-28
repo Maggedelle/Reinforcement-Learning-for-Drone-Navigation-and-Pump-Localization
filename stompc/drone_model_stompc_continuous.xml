@@ -7,7 +7,6 @@ int y = //TAG_y;
 double yaw = //TAG_yaw;
 int map_width = //TAG_width_map;
 int map_height = //TAG_height_map;
-double map_granularity = //TAG_granularity_map;
 //TAG_map;
 
 int current_step_length = 0;
@@ -33,6 +32,7 @@ const double PI_upper = 3.14;
 const double PI_lower = -3.14;
 const double PI_half_pos = 1.57;
 const double PI_half_neg = -1.57;
+const double map_granularity = //TAG_granularity_map;
 
 // Drone specs, all values in meters
 const double drone_diameter = 0.6;
@@ -94,10 +94,12 @@ void calculate_reward() {
         for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
             for(j = y + 1; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == -1) {
-                    map[j][i] = 0;
                     accum_reward += discovery_reward;
                     if(!open){
+                        map[j][i] = 100;
                         j = upper_bound_y;
+                    }else {
+                        map[j][i] = 0;
                     }
                 }
             }
@@ -123,10 +125,12 @@ void calculate_reward() {
         for(i = x + 1; i &lt; upper_bound_x; i++) {
             for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == -1) {
-                    map[j][i] = 0;
                     accum_reward += discovery_reward;
                     if(!open){
+                        map[j][i] = 100;
                         j = upper_bound_y;
+                    }else {
+                        map[j][i] = 0;
                     }
                 }
             }
@@ -152,10 +156,12 @@ void calculate_reward() {
         for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
             for(j = y - 1; j &gt;= upper_bound_y; j--) {
                 if(map[j][i] == -1) {
-                    map[j][i] = 0;
                     accum_reward += discovery_reward;
                     if(!open) {
+                        map[j][i] = 100;
                         j = upper_bound_y - 1;
+                    }else {
+                        map[j][i] = 0;
                     }
                 }
             }
@@ -181,10 +187,12 @@ void calculate_reward() {
         for(i = x - 1; i &gt;= upper_bound_x; i--) {
             for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == -1) {
-                    map[j][i] = 0;
                     accum_reward += discovery_reward;
                     if(!open) {
+                        map[j][i] = 100;
                         j = upper_bound_y;
+                    }else {
+                        map[j][i] = 0;
                     }
                 }
             }
@@ -226,8 +234,8 @@ bool can_move(int action, int step_length) {
         if(lower_bound_x &lt; 0 || upper_bound_x &gt; map_width || upper_bound_y &gt; map_height) {
             return false;
         }
-        for(i = lower_bound_x; i &lt;= upper_bound_x; i++) {
-            for(j = y + 1; j &lt;= upper_bound_y; j++) {
+        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
+            for(j = y + 1; j &lt; upper_bound_y; j++) {
                 if( map[j][i] == 100 || map[j][i] == -1) {
                     return false;
                 }
@@ -245,8 +253,8 @@ bool can_move(int action, int step_length) {
          if(lower_bound_y &lt; 0 || upper_bound_y &gt; map_height || upper_bound_x &gt; map_width) {
             return false;
         }
-        for(i = x + 1; i &lt;= upper_bound_x; i++) {
-            for(j = lower_bound_y; j &lt;= upper_bound_y; j++) {
+        for(i = x + 1; i &lt; upper_bound_x; i++) {
+            for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
                 }
@@ -261,10 +269,10 @@ bool can_move(int action, int step_length) {
         int i;
         int j;
 
-        if(lower_bound_x &lt; 0 || upper_bound_x &gt; map_width || upper_bound_y &gt; map_height) {
+        if(lower_bound_x &lt; 0 || upper_bound_x &gt; map_width || upper_bound_y &lt; 0) {
             return false;
         }
-        for(i = lower_bound_x; i &lt;= upper_bound_x; i++) {
+        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
             for(j = y - 1; j &gt;= upper_bound_y; j--) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
@@ -280,11 +288,11 @@ bool can_move(int action, int step_length) {
         int i;
         int j;
 
-       if(lower_bound_y &lt; 0 ||upper_bound_y &gt; map_height || upper_bound_x &gt; map_width) {
+       if(lower_bound_y &lt; 0 ||upper_bound_y &gt; map_height || upper_bound_x &lt; 0) {
             return false;
         }
         for(i = x - 1; i &gt;= upper_bound_x; i--) {
-            for(j = lower_bound_y; j &lt;=upper_bound_y; j++) {
+            for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
                 }
