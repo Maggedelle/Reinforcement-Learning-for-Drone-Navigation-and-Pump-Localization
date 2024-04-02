@@ -78,7 +78,7 @@ def run(template_file, query_file, verifyta_path):
     yaw = 0.0
     action = -1
     N = 0
-    open_training = "0"
+    open_training = "1"
     optimize = "maxE"
     learning_param = "accum_reward"
     map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x,y)
