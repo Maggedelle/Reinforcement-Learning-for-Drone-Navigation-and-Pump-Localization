@@ -27,24 +27,44 @@ full_PI_turn = 3.14    # 180 degress turn
 e = 0.2
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.6,laser_range=4,laser_range_diameter=2)
-training_parameters = TrainingParameters(open=1, turning_cost=5.0, moving_cost=10.0, discovery_reward=2.0)
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
+training_parameters = TrainingParameters(open=1, turning_cost=5.0, moving_cost=5.0, discovery_reward=10.0)
+
+def get_current_state():
+    x = float(vehicle_odometry.get_drone_pos_x())
+    y = float(vehicle_odometry.get_drone_pos_y())
+    yaw = offboard_control_instance.yaw
+    state = map_processing.process_map_data(x,y)
+    state.yaw = yaw
+    return state 
 
 def activate_action(action):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = offboard_control_instance.yaw
     match action:
-        case 0:
+        case 10:
+            y-=0.5
+            time.sleep(1)
+        case 11:
+            x+=0.5
+            time.sleep(1)
+        case 12:
+            y+=0.5
+            time.sleep(1)
+        case 13:
+            x-=0.5
+            time.sleep(1)
+        case 20:
             y-=1
             time.sleep(1)
-        case 1:
+        case 21:
             x+=1
             time.sleep(1)
-        case 2:
+        case 22:
             y+=1
             time.sleep(1)
-        case 3:
+        case 23:
             x-=1
             time.sleep(1)
         case 4:
@@ -58,7 +78,6 @@ def activate_action(action):
         case 6:
             yaw = turn_drone(yaw,full_PI_turn)
             time.sleep(3.5)
-
         case _:
             print("unkown action")
             state = map_processing.process_map_data(x, y)
@@ -150,11 +169,11 @@ def run(template_file, query_file, verifyta_path):
             k = 0
             RUN_END_TIME = time.time()
             K_END_TIME = time.time()
-            iteration_time = (K_END_TIME-K_START_TIME)*10**3
-            learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3
-            total_time += iteration_time
+            iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
+            learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3 / 1000
+            total_time += iteration_time / 60
             N = N + 1
-            print("Iteration {} took: {}ms, training took: {}, total time spent: {}".format(N, iteration_time, learning_time, total_time))
+            print("Iteration {} took: {:0.4f} seconds, training took: {:0.4f} seconds, total time spent: {:0.2f} minutes".format(N, iteration_time, learning_time, total_time))
             print("got action sequence from STRATEGO: ", action_seq)
         
         k=k+1
@@ -167,9 +186,16 @@ def run(template_file, query_file, verifyta_path):
                 state = activate_action(action)
             else:
                 print("shielded action: {}".format(action))
-                state = activate_action(-1)
-                train = True
-                k = 0
+                
+                time.sleep(3)
+                state = get_current_state()
+                if(shield_action(action,state,drone_specs)):
+                    state = activate_action(action)
+                else:
+                    print("shielded action: {} twice, training again".format(action))
+                    state = get_current_state()
+                    train = True
+                    k = 0
         
         
         
@@ -199,7 +225,8 @@ def init_depth_camera_bridge():
         print("image depth_camera started...")
         os.system('ros2 run ros_gz_bridge parameter_bridge /depth_camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked --ros-args -r /depth_camera/points:=/cloud')
     depth_camera_brdige_thread = threading.Thread(target=run_depth_camera)
-    depth_camera_brdige_thread.start()
+    depth_camera    step_length = 0
+_brdige_thread.start()
 
 def init_rclpy():
     print("initializing rclpy")
