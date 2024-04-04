@@ -14,7 +14,7 @@ class LidarSensorListener(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
-            depth=1
+            depth=10000
         )   
         self.zone_points = []
 
@@ -22,7 +22,7 @@ class LidarSensorListener(Node):
         self.SPLIT_SIZE = 7
         # Create subscribers
         self.lidar_sensor_subscriber = self.create_subscription(
-            PointCloud2, '/depth_camera/points', self.lidar_sensor_callback, 10)
+            PointCloud2, '/cloud', self.lidar_sensor_callback, 10)
     
       
     def lidar_sensor_callback(self, msg):
@@ -77,7 +77,7 @@ class LidarSensorListener(Node):
                 zones.append(points_to_get_test)
 
         for zone in zones:
-                generator = point_reader.read_points(msg, skip_nans=True, field_names=("x"), uvs=zone)
+                generator = point_reader.read_points(msg, skip_nans=True, field_names=("x,y,z"), uvs=zone)
                 points = list(generator)
                 self.zone_points.append(points)
 
@@ -94,22 +94,26 @@ def get_avg_distance():
         if zone == None:
             avg_zone_dists.append(2.0)
             continue
-        zone_points = [tpl[0] for tpl in zone if not math.isinf(tpl[0])]
+        zone_points = [tpl for tpl in zone if not any(math.isinf(d) for d in tpl)]
         if len(zone_points) == 0:
-            print(f'zone with 0 non inf points: {zone}')
+            #print(f'zone with 0 non inf points: {zone}')
             continue
-        avg_zone_dist = sum(zone_points) / len(zone_points)
+        #print("zone_points: {}".format(zone_points[:5]))
+
+        avg_zone_dist = sum([x for x,_,_ in zone_points]) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
 
-    print("Average zone distances:",avg_zone_dists)
     #TODO: Skal det laves sådan at det ikke er split_size den tager efter her, siden der kan være færre zoner end 
     #      forventet pga. det med nogle zoner er fuld af inf?
-    if SPLIT_SIZE % 2 == 0:
-        return_dist = (avg_zone_dists[(SPLIT_SIZE//2)-1] + avg_zone_dists[SPLIT_SIZE//2]) / 2
+    zones_found = len(avg_zone_dists)
+    if zones_found == 0:
+        return 0.0
+    if zones_found % 2 == 0:
+        return_dist = (avg_zone_dists[(zones_found//2)-1] + avg_zone_dists[zones_found//2]) / 2
     else:
-        return_dist = avg_zone_dists[SPLIT_SIZE//2]
+        return_dist = avg_zone_dists[zones_found//2]
 
-    print("Test print:",avg_zone_dists[1:-1])
+    #print("Test print:",avg_zone_dists[1:-1])
     if any(x < 2 for x in avg_zone_dists[1:-1]):
         return_dist = min(avg_zone_dists)
 
