@@ -96,9 +96,9 @@ def get_avg_distance():
             continue
         zone_points = [tpl for tpl in zone if not any(math.isinf(d) for d in tpl)]
         if len(zone_points) == 0:
-            print(f'zone with 0 non inf points: {zone}')
+            #print(f'zone with 0 non inf points: {zone}')
             continue
-        print("zone_points: {}".format(zone_points[:5]))
+        #print("zone_points: {}".format(zone_points[:5]))
 
         avg_zone_dist = sum([x for x,_,_ in zone_points]) / len(zone_points)
         avg_zone_dists.append(avg_zone_dist)
@@ -106,12 +106,14 @@ def get_avg_distance():
     #TODO: Skal det laves sådan at det ikke er split_size den tager efter her, siden der kan være færre zoner end 
     #      forventet pga. det med nogle zoner er fuld af inf?
     zones_found = len(avg_zone_dists)
+    if zones_found == 0:
+        return 0.0
     if zones_found % 2 == 0:
         return_dist = (avg_zone_dists[(zones_found//2)-1] + avg_zone_dists[zones_found//2]) / 2
     else:
         return_dist = avg_zone_dists[zones_found//2]
 
-    print("Test print:",avg_zone_dists[1:-1])
+    #print("Test print:",avg_zone_dists[1:-1])
     if any(x < 2 for x in avg_zone_dists[1:-1]):
         return_dist = min(avg_zone_dists)
 
