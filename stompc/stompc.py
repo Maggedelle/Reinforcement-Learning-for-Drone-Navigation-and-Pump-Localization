@@ -13,7 +13,8 @@ from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
-from utils import turn_drone
+from utils import turn_drone, shield_action
+from classes import State, DroneSpecs, TrainingParameters
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
@@ -25,6 +26,10 @@ half_PI_left = -1.57   # 90 degrees left
 full_PI_turn = 3.14    # 180 degress turn
 e = 0.2
 uppaa_e = 0.5
+
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.6,laser_range=4,laser_range_diameter=2)
+training_parameters = TrainingParameters(open=1, turning_cost=5.0, moving_cost=10.0, discovery_reward=2.0)
+
 def activate_action(action):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
@@ -32,22 +37,33 @@ def activate_action(action):
     match action:
         case 0:
             y-=1
+            time.sleep(1)
         case 1:
             x+=1
+            time.sleep(1)
         case 2:
             y+=1
+            time.sleep(1)
         case 3:
             x-=1
+            time.sleep(1)
         case 4:
             yaw = turn_drone(yaw, half_PI_left)
+            time.sleep(2.5)
+
         case 5:
             yaw = turn_drone(yaw, half_PI_right)
+            time.sleep(2.5)
+
         case 6:
             yaw = turn_drone(yaw,full_PI_turn)
+            time.sleep(3.5)
+
         case _:
             print("unkown action")
-            map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x, y)
-            return map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, map_granularity
+            state = map_processing.process_map_data(x, y)
+            state.yaw = yaw
+            return state
 
 
     offboard_control_instance.x = x
@@ -56,77 +72,108 @@ def activate_action(action):
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
 
-    time.sleep(2)
     while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
-    map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(curr_x, curr_y)
+    state = map_processing.process_map_data(curr_x, curr_y)
+    state.yaw = yaw
 
-    return map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, map_granularity
+    return state
 
 
 def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "yaw", "map_swidth","height_map", "map", "granularity_map", "training_param"])
+        state_names=["x", "y", "yaw", "width_map","height_map", "map", "granularity_map", "open", "discovery_reward", "turning_cost", "moving_cost", "drone_diameter", "safety_range", "range_laser", "laser_range_diameter"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
-    yaw = 0.0
-    action = -1
+    action_seq = [-1]
     N = 0
-    open_training = "1"
     optimize = "maxE"
     learning_param = "accum_reward"
-    map,map_drone_index_x,map_drone_index_y, map_width, map_height, map_granularity = map_processing.process_map_data(x,y)
+    state = map_processing.process_map_data(x,y)
+    state.yaw = offboard_control_instance.yaw
     controller.generate_query_file(optimize, learning_param,
-                                   state_vars=["DroneController.DescisionState", unpack_environment(map, "map"), "x", "y"], 
+                                   state_vars=["DroneController.DescisionState", "x", "y"], 
                                    point_vars=["yaw"], 
-                                   observables=["action", "x", "y", "yaw", "current_step_length"])
+                                   observables=["action"])
 
 
-    L = 1000 # simulation length
-    K = 1  # every K we will do MPC
-    for k in range(L):
+    total_time = 0.0
+    k = 0  
+    train = True
+    horizon = 7
+    while True:
         K_START_TIME = time.time()
         # run plant
 
         #handle_action(next_action);
         
-        #<- readings fra diverse sensor
-        map,map_drone_index_x,map_drone_index_y, map_width, map_height, yaw, _ = activate_action(action)
+        #<- Activate the current action and receive the updated state of the world
 
-        if k % K == 0:
+
+        if train == True or k % horizon == 0:
             # at each MPC step we want a clean template copy
             # to insert variables
             controller.init_simfile()
             
             # insert current state into simulation template
-            state = {
-                "x": map_drone_index_x,
-                "y": map_drone_index_y,
-                "yaw":  yaw,
-                "map": build_uppaal_2d_array_string("int", "map", map),
-                "width_map": map_width,
-                "height_map": map_height,
-                "granularity_map": map_granularity,
-                "training_param": open_training
+            uppaal_state = {
+                "x": state.map_drone_index_x,
+                "y": state.map_drone_index_y,
+                "yaw":  state.yaw,
+                "map": build_uppaal_2d_array_string("int", "map", state.map),
+                "width_map": state.map_width,
+                "height_map": state.map_height,
+                "granularity_map": state.map_granularity,
+                "open": training_parameters.open, 
+                "discovery_reward": training_parameters.disovery_reward, 
+                "turning_cost": training_parameters.turning_cost, 
+                "moving_cost": training_parameters.moving_cost, 
+                "drone_diameter": drone_specs.drone_diameter,
+                "safety_range": drone_specs.safety_range,
+                "range_laser": drone_specs.laser_range, 
+                "laser_range_diameter": drone_specs.laser_range_diameter
             }
             #print(state)
-            controller.insert_state(state)
+
+            controller.insert_state(uppaal_state)
+            train = False
             RUN_START_TIME = time.time()
-            action, x,y, yaw,step_length = controller.run(
+            action_seq = controller.run(
                 queryfile=query_file,
                 verifyta_path=verifyta_path)
+            k = 0
             RUN_END_TIME = time.time()
             K_END_TIME = time.time()
-            print(action,x,y,yaw,step_length)
-
-            print("Iteration {} took: {}ms, training took: {} with array lengths of {}".format(k,(K_END_TIME-K_START_TIME)*10**3,(RUN_END_TIME-RUN_START_TIME)*10**3,N))
-            
+            iteration_time = (K_END_TIME-K_START_TIME)*10**3
+            learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3
+            total_time += iteration_time
+            N = N + 1
+            print("Iteration {} took: {}ms, training took: {}, total time spent: {}".format(N, iteration_time, learning_time, total_time))
+            print("got action sequence from STRATEGO: ", action_seq)
+        
+        k=k+1
+        if(len(action_seq) == 0):
+            train = True
+            k = 0
+        else: 
+            action = action_seq.pop(0)
+            if(shield_action(action,state, drone_specs)):
+                state = activate_action(action)
+            else:
+                print("shielded action: {}".format(action))
+                state = activate_action(-1)
+                train = True
+                k = 0
+        
+        
+        
+        
             #print("actions:",action_seq)
 
 

@@ -45,7 +45,7 @@ class QueueLengthController(StrategoController):
 
     def generate_simulate_query(self, observables) :
         simulate_length = "1000"
-        stop_condition = "(DroneController.target || time >= 10)"
+        stop_condition = "(DroneController.target || time >= 20)"
 
         simulate_string = "simulate [<={};1]".format(simulate_length)
         simulate_string += " {" + ",".join(observables) + "}"
@@ -57,19 +57,8 @@ class QueueLengthController(StrategoController):
     def run(self, queryfile="", learning_args={}, verifyta_path="/home/sw9-bois/uppaal-5.0.0-linux64/bin/verifyta"):
         output = super().run(queryfile, learning_args, verifyta_path)
         # parse output
-        tpls = sutil.get_float_tuples(output)
-     
-
-        values = []
-        last_zero_value = 0
-        previous_was_zero = False
-        for i in range(len(tpls)):
-            if(tpls[i][0] == 0):
-                last_zero_value = tpls[i][1]
-                previous_was_zero = True
-            
-            if(tpls[i][0] != 0 and previous_was_zero):
-                previous_was_zero = False
-                values.append(last_zero_value)
-                
-        return values
+   
+        tpls = sutil.get_int_tuples(output)
+        result = sutil.get_duration_action(tpls, max_time=1000)
+        durations, actions = list(zip(*result)) 
+        return list(actions)

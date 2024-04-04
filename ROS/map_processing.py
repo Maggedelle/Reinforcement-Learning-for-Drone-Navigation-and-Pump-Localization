@@ -6,6 +6,12 @@ from nav_msgs.srv import GetMap
 import numpy as np
 import threading
 import math
+import os
+import sys
+
+sys.path.insert(0, '../')
+
+from stompc.classes import State
 class MapServiceCaller(Node):
     def __init__(self) -> None:
         super().__init__('map_listener')
@@ -21,7 +27,7 @@ class MapServiceCaller(Node):
 
 
 
-def process_map_data(drone_x, drone_y):
+def process_map_data(drone_x, drone_y) -> State:
 
     msg = None
     map_service_instance = MapServiceCaller()
@@ -49,12 +55,10 @@ def process_map_data(drone_x, drone_y):
     data = msg.data
     x_offset = abs(math.floor((msg.info.origin.position.x / granularity)))
     y_offset = abs(math.floor((msg.info.origin.position.y / granularity)))
-    print(msg.info.origin.position.x, msg.info.origin.position.y)
-    print(x_offset,y_offset)
+
     x_index = math.floor((drone_x) / granularity) + x_offset
     y_index = math.floor(((drone_y * -1)) / granularity) + y_offset
 
-    print(x_index, y_index)
     for i in range(0, len(data), width):
         row = data[i:i + width]
         matrix.append(row)
@@ -62,7 +66,6 @@ def process_map_data(drone_x, drone_y):
 
     x = 0
     y = 0
-    print("drone x,y in map: ({},{})".format(x_index,y_index))
     with open('matrix.txt', 'w') as testfile:
         for row in matrix:
             x=x+1
@@ -82,8 +85,7 @@ def process_map_data(drone_x, drone_y):
             testfile.write(', '.join(string_row) + '\n')
             y = 0
             
-            
-    return matrix, x_index, y_index, width, height, granularity
+    return State(matrix, x_index, y_index, width, height, granularity)        
 
 
 
