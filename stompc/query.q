@@ -1,3 +1,3 @@
-strategy opt = maxE(accum_reward) [<=20]{DroneController.DescisionState,x,y}->{yaw} : <> (DroneController.target || time >= 10)
+strategy opt = maxE(accum_reward) [<=21]{DroneController.DescisionState}->{yaw,x,y} : <> (DroneController.target || time >= 20)
  
-simulate [<=1000;1] {action} : (DroneController.target || time >= 20) under opt
+simulate [<=1000;1] {action} : (DroneController.target || time >= 10) under opt

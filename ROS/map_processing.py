@@ -46,7 +46,7 @@ def process_map_data(drone_x, drone_y) -> State:
                msg = response.map
             break
 
-    print("map service called")
+    #print("map service called")
     width = msg.info.width
     height = msg.info.height
     granularity = round(msg.info.resolution,2)
