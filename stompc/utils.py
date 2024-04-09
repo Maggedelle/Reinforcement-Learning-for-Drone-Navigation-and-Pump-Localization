@@ -26,7 +26,12 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
     Returns TRUE if action is SAFE.
     Returns FALSE if action is UNSAFE.
     """
-    N_cells_in_dir = int(1 / state.map_granularity)
+    step_length = 0
+    if(action > 14):
+        step_length = 1.0
+    else:
+        step_length = 0.5
+    N_cells_in_dir = int(step_length / state.map_granularity)
     drone_cells_to_cover = int((drone_specs.drone_diameter) / state.map_granularity)
     safety_range_cells = int(drone_specs.safety_range / state.map_granularity)
     

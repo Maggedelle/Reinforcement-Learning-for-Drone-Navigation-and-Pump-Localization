@@ -30,9 +30,9 @@ class QueueLengthController(StrategoController):
 
     def generate_strategy_query(self,optimize, learning_param, state_vars, point_vars):
 
-        time_to_reach_stop_condition = "1000"
+        time_to_reach_stop_condition = "21"
         
-        stop_condition = "(DroneController.target || time >= 10)"
+        stop_condition = "(DroneController.target || time >= 20)"
 
         strategy_string = "strategy opt = {}({}) [<={}]".format(optimize, learning_param, time_to_reach_stop_condition)
         strategy_string += "{" + ",".join(state_vars) + "}"
@@ -45,7 +45,7 @@ class QueueLengthController(StrategoController):
 
     def generate_simulate_query(self, observables) :
         simulate_length = "1000"
-        stop_condition = "(DroneController.target || time >= 20)"
+        stop_condition = "(DroneController.target || time >= 10)"
 
         simulate_string = "simulate [<={};1]".format(simulate_length)
         simulate_string += " {" + ",".join(observables) + "}"

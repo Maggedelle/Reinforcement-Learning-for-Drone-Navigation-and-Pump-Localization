@@ -227,8 +227,8 @@ broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;</declaration>
 //          1: South (+x)
 //          2: East (-y),
 //          3: North (-x)
-bool can_move(int action, int step_length) {
-    int N_cells_in_dir = fint(step_length / map_granularity);
+bool can_move(int action, double step_length) {
+    int N_cells_in_dir = fint((step_length / 2) / map_granularity);
     int drone_cells_to_cover = fint((drone_diameter) / map_granularity);
     int safety_range_cells = fint(safety_range / map_granularity);
 
@@ -248,7 +248,7 @@ bool can_move(int action, int step_length) {
             return false;
         }
         for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
-            for(j = y + 1; j &lt; upper_bound_y; j++) {
+            for(j = y + (drone_cells_to_cover / 2); j &lt; upper_bound_y; j++) {
                 if( map[j][i] == 100 || map[j][i] == -1) {
                     return false;
                 }
@@ -266,7 +266,7 @@ bool can_move(int action, int step_length) {
          if(lower_bound_y &lt; 0 || upper_bound_y &gt; map_height || upper_bound_x &gt; map_width) {
             return false;
         }
-        for(i = x + 1; i &lt; upper_bound_x; i++) {
+        for(i = x + (drone_cells_to_cover / 2); i &lt; upper_bound_x; i++) {
             for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
@@ -286,7 +286,7 @@ bool can_move(int action, int step_length) {
             return false;
         }
         for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
-            for(j = y - 1; j &gt;= lower_bound_y; j--) {
+            for(j = y - (drone_cells_to_cover / 2); j &gt;= lower_bound_y; j--) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
                 }
@@ -304,7 +304,7 @@ bool can_move(int action, int step_length) {
        if(lower_bound_y &lt; 0 ||upper_bound_y &gt; map_height || lower_bound_x &lt; 0) {
             return false;
         }
-        for(i = x - 1; i &gt;= lower_bound_x; i--) {
+        for(i = x - (drone_cells_to_cover / 2); i &gt;= lower_bound_x; i--) {
             for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
                 if(map[j][i] == 100 || map[j][i] == -1) {
                     return false;
@@ -413,7 +413,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id20">
 			<source ref="id0"/>
 			<target ref="id8"/>
-			<label kind="select" x="909" y="374">step_length : int [1,1]</label>
+			<label kind="select" x="909" y="374">step_length : int [1,2]</label>
 			<label kind="guard" x="909" y="391">can_move(0,step_length)</label>
 			<label kind="assignment" x="858" y="408">current_step_length = step_length</label>
 			<nail x="892" y="408"/>
@@ -422,7 +422,7 @@ bool can_move(int action, int step_length) {
 		<transition id="id21">
 			<source ref="id0"/>
 			<target ref="id7"/>
-			<label kind="select" x="943" y="297">step_length : int [1,1]</label>
+			<label kind="select" x="943" y="297">step_length : int [1,2]</label>
 			<label kind="guard" x="943" y="314">can_move(2, step_length)</label>
 			<label kind="assignment" x="901" y="331">current_step_length = step_length</label>
 			<nail x="935" y="331"/>
@@ -431,14 +431,14 @@ bool can_move(int action, int step_length) {
 		<transition id="id22">
 			<source ref="id0"/>
 			<target ref="id5"/>
-			<label kind="select" x="952" y="221">step_length : int [1,1]</label>
+			<label kind="select" x="952" y="221">step_length : int [1,2]</label>
 			<label kind="guard" x="960" y="229">can_move(1, step_length)</label>
 			<label kind="assignment" x="926" y="263">current_step_length = step_length</label>
 		</transition>
 		<transition id="id23">
 			<source ref="id0"/>
 			<target ref="id6"/>
-			<label kind="select" x="918" y="119">step_length : int [1,1]</label>
+			<label kind="select" x="918" y="119">step_length : int [1,2]</label>
 			<label kind="guard" x="909" y="136">can_move(3, step_length)</label>
 			<label kind="assignment" x="901" y="153">current_step_length = step_length</label>
 		</transition>
@@ -542,8 +542,8 @@ turn_drone(half_PI_left)</label>
 clock c;
 
 void move(double dir_x, double dir_y) { 
-    x = x + fint((dir_x / map_granularity));
-    y = y + fint((dir_y / map_granularity));
+    x = x + fint(((dir_x / 2) / map_granularity));
+    y = y + fint(((dir_y / 2) / map_granularity));
 
     calculate_reward();
     accum_reward = accum_reward - moving_cost;
@@ -595,7 +595,7 @@ action = -1</label>
 			<label kind="synchronisation" x="416" y="76">move_east?</label>
 			<label kind="assignment" x="416" y="17">move(0, -current_step_length),
 c = 0,
-action = 2</label>
+action = 2 + (current_step_length * 10)</label>
 		</transition>
 		<transition id="id42" controllable="false" color="#a9a9a9">
 			<source ref="id34"/>
@@ -603,7 +603,7 @@ action = 2</label>
 			<label kind="synchronisation" x="-51" y="85">move_west?</label>
 			<label kind="assignment" x="-51" y="119">move(0, current_step_length),
 c = 0,
-action = 0</label>
+action = 0 + (current_step_length * 10)</label>
 		</transition>
 		<transition id="id43" controllable="false">
 			<source ref="id35"/>
@@ -621,7 +621,7 @@ action = -1</label>
 			<label kind="synchronisation" x="255" y="263">move_south?</label>
 			<label kind="assignment" x="255" y="280">move(current_step_length, 0),
 c = 0,
-action = 1</label>
+action = 1 + (current_step_length * 10)</label>
 		</transition>
 		<transition id="id45" controllable="false">
 			<source ref="id34"/>
@@ -629,7 +629,7 @@ action = 1</label>
 			<label kind="synchronisation" x="136" y="-42">move_north?</label>
 			<label kind="assignment" x="136" y="-102">move(-current_step_length, 0),
 c = 0,
-action = 3</label>
+action = 3 + (current_step_length * 10)</label>
 		</transition>
 		<transition id="id46" controllable="false">
 			<source ref="id38"/>
