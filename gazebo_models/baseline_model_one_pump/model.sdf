@@ -16,7 +16,28 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/floor.jpg</albedo_map>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+      <visual name="Cube.007">
+        <geometry>
+          <mesh>
+            <uri>meshes/model.dae</uri>
+            <submesh>
+              <name>Cube.007</name>
+            </submesh>
+          </mesh>
+        </geometry>
+        <material>
+          <diffuse>1.0 1.0 1.0 1.0</diffuse>
+          <specular>0.0 0.0 0.0 1.0</specular>
+          <pbr>
+            <metal>
+              <albedo_map>meshes/green.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -33,7 +54,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -50,7 +73,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -67,7 +92,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -84,7 +111,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -101,7 +130,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
@@ -118,24 +149,9 @@
           <diffuse>1.0 1.0 1.0 1.0</diffuse>
           <specular>0.0 0.0 0.0 1.0</specular>
           <pbr>
-            <metal/>
-          </pbr>
-        </material>
-      </visual>
-      <visual name="Cube.007">
-        <geometry>
-          <mesh>
-            <uri>meshes/model.dae</uri>
-            <submesh>
-              <name>Cube.007</name>
-            </submesh>
-          </mesh>
-        </geometry>
-        <material>
-          <diffuse>0.0 1.0 0.0 1.0</diffuse>
-          <specular>0.0 0.0 0.0 1.0</specular>
-          <pbr>
-            <metal/>
+            <metal>
+              <albedo_map>meshes/wall.jpg</albedo_map>
+            </metal>
           </pbr>
         </material>
       </visual>
