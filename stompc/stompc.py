@@ -8,6 +8,8 @@ import strategoutil as sutil
 import time
 import math
 sys.path.insert(0, '../')
+from dotenv import load_dotenv
+load_dotenv()
 
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
@@ -18,6 +20,10 @@ from classes import State, DroneSpecs, TrainingParameters
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
+
+ENV_DOMAIN = os.environ['DOMAIN']
+ENV_VERIFYTA_PATH = os.environ['VERIFYTA_PATH']
+
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
 
@@ -242,10 +248,9 @@ def init_depth_camera_bridge():
 
 def init_rclpy():
     print("initializing rclpy")
-    rclpy.init(domain_id=2)
+    rclpy.init(domain_id=int(ENV_DOMAIN))
 
 if __name__ == "__main__":
-    
     init_rclpy()
     init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
@@ -262,7 +267,7 @@ if __name__ == "__main__":
         help="Path to Stratego .xml file model template")
     ap.add_argument("-q", "--query-file", default="query.q",
         help="Path to Stratego .q query file")
-    ap.add_argument("-v", "--verifyta-path", default="/home/sw9-bois/uppaal-5.0.0-linux64/bin/verifyta", help=
+    ap.add_argument("-v", "--verifyta-path", default=ENV_VERIFYTA_PATH, help=
         "Path to verifyta executable")
 
     args = ap.parse_args()
