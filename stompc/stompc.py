@@ -37,10 +37,10 @@ drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.45,laser_range=2,lase
 training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0)
 learning_args = {
     "max-iterations": "2",
-    #"reset-no-better": "2",
-    #"good-runs": "100",
-    #"total-runs": "100",
-    #"runs-pr-state": "100"
+    "reset-no-better": "2",
+    "good-runs": "100",
+    "total-runs": "100",
+    "runs-pr-state": "100"
     }
 
 def get_current_state():
