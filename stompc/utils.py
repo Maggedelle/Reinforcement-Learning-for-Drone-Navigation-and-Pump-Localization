@@ -40,7 +40,7 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
     
     
     match action:
-        case 0:
+        case 10 | 20:
             lower_bound_x = int(state.map_drone_index_x - (drone_cells_to_cover / 2) - safety_range_cells)
             upper_bound_x = int(state.map_drone_index_x +  (drone_cells_to_cover / 2) + safety_range_cells)
             upper_bound_y = int(state.map_drone_index_y + N_cells_in_dir + safety_range_cells)
@@ -57,7 +57,7 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
                 
             
             return True
-        case 1:
+        case 11 | 21:
             lower_bound_y = int(state.map_drone_index_y - (drone_cells_to_cover / 2) - safety_range_cells)
             upper_bound_y = int(state.map_drone_index_y +  (drone_cells_to_cover / 2) + safety_range_cells)
             upper_bound_x = int(state.map_drone_index_x + N_cells_in_dir + safety_range_cells)
@@ -72,7 +72,7 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
                         return False
                     
             return True
-        case 2:
+        case 12 | 22:
             lower_bound_x = int(state.map_drone_index_x - (drone_cells_to_cover / 2) - safety_range_cells)
             upper_bound_x = int(state.map_drone_index_x +  (drone_cells_to_cover / 2) + safety_range_cells)
             lower_bound_y = int(state.map_drone_index_y - N_cells_in_dir - safety_range_cells)
@@ -89,7 +89,7 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
                         return False
                     
             return True
-        case 3:
+        case 13 | 23:
             lower_bound_y = int(state.map_drone_index_y - (drone_cells_to_cover / 2) - safety_range_cells)
             upper_bound_y = int(state.map_drone_index_y +  (drone_cells_to_cover / 2) + safety_range_cells)
             lower_bound_x = int(state.map_drone_index_x - N_cells_in_dir - safety_range_cells)
