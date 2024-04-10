@@ -1,4 +1,4 @@
-from classes import State, DroneSpecs
+from classes import State, DroneSpecs, Point, DIRS_8, DIRS_4
 import math
 PI_upper = 3.14
 PI_lower = -3.14
@@ -145,13 +145,29 @@ def unpack_array(array, array_name):
 
     return ",".join(lst_string) 
 
+N = Point(-1, 0)
+NE = Point(-1, -1)
+E = Point(0, -1)
+SE = Point(1, -1)
+S = Point(1, 0)
+SW = Point(1, 1)
+W = Point(0, 1)
+NW = Point(-1, 1)
+
 def measure_closure(map: list, x: int, y: int) -> float:
     """
     measure_closure(map: list, x: int, y: int) -> float
 
     Returns the measure of how closed the map is.
-    The measure is saying how long the potential gaps in the walls are compared to the length of the wall.
+    The measure is saying how long the gaps in the walls are compared to the length of the wall.
     """
-    closure = None
 
-    return closure
+    # Find the nearest wall. This is used as the starting point for the measure
+    drone_pos = Point(x,y)
+    wall_start = None
+    cells_from_drone = 0
+    for dir in DIRS_4:
+        temp_point = drone_pos
+        while True:
+            #TODO: Her skal jeg lave så jeg finder hvilken dir der er tættest på en væg
+            NotImplemented
