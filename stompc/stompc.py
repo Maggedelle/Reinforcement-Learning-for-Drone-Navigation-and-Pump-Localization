@@ -33,7 +33,7 @@ full_PI_turn = 3.14    # 180 degress turn
 e = 0.2
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.45,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
 training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0)
 learning_args = {
     "max-iterations": "2",
