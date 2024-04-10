@@ -24,4 +24,18 @@ class TrainingParameters:
         self.turning_cost = turning_cost
         self.moving_cost = moving_cost
         self.disovery_reward = discovery_reward
+
+
+
+class Pump:
+    def __init__(self, x:float, y:float) -> None:
+        self.x = x
+        self.y = y
         
+
+
+class MapConfig:
+    def __init__(self, pumps:list[Pump]):
+        self.pumps = pumps
+
+
