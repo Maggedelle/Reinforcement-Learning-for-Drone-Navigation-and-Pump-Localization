@@ -14,8 +14,8 @@ load_dotenv()
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
-from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
-from utils import turn_drone, shield_action
+from environment import generate_environment
+from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string
 from classes import State, DroneSpecs, TrainingParameters
 global offboard_control_instance
 global odom_publisher_instance

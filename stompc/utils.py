@@ -108,3 +108,50 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
             return True
         case _:
             return True
+
+def build_uppaal_2d_array_string(type, name, array):
+    """
+    Builds a 2D array to be inserted into uppaal from a python lists of lists.
+
+    @type: denotes the type of the array when it's inserted into uppaal
+    @name: the name the array is going to have in uppaal
+    @array: the content of the array
+    """
+    uppaal_array = "{} {}[{}][{}] = ".format(type, name, len(array), len(array[0]))
+    uppaal_array += "{\n"
+
+    lst_strings = []
+    for lst_ele in array:
+        arr_string = "  {"
+        arr_string += ','.join([str(x) for x in lst_ele])
+        arr_string += "}"
+        lst_strings.append(arr_string)
+    uppaal_array += ',\n'.join(lst_strings) + "\n}"
+
+
+    return uppaal_array
+
+def unpack_array(arr, arr_name):
+    """
+    Unpacks an array so that it can be used in training query
+    
+    @arr: the array to unpack
+    @arr_name: the name of the array in uppaal
+    """
+    lst_string = []
+    for i in range(0, len(arr)):
+        for j in range(0, len(arr[0])):
+            lst_string.append("{}[{}][{}]".format(arr_name, i,j))
+
+    return ",".join(lst_string) 
+
+def measure_closure(map: list, x: int, y: int) -> float:
+    """
+    measure_closure(map: list, x: int, y: int) -> float
+
+    Returns the measure of how closed the map is.
+    The measure is saying how long the potential gaps in the walls are compared to the length of the wall.
+    """
+    closure = None
+
+    return closure
