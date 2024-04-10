@@ -1,4 +1,4 @@
-from classes import State, DroneSpecs
+from classes import State, DroneSpecs, MapConfig
 import math
 PI_upper = 3.14
 PI_lower = -3.14
@@ -108,3 +108,25 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
             return True
         case _:
             return True
+        
+
+
+
+def run_pump_detection(state:State, map_config: MapConfig):
+    """
+    Returns TRUE if a pump is detected.
+    Returns FALSE if a pump is not detected.
+    """
+
+
+    for pump in map_config.pumps:
+        x_index = pump.x / state.map_granularity
+        y_index = pump.y / state.map_granularity
+
+        # check if x_index or y_index is out of bounds.
+        # this can happend if the pumps has not been explored yet.
+        if(x_index > state.map_height or y_index > state.map_width):
+            continue
+        
+
+

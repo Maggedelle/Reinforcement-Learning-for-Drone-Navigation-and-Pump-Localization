@@ -17,6 +17,7 @@ from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
 from utils import turn_drone, shield_action
 from classes import State, DroneSpecs, TrainingParameters
+from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
@@ -42,6 +43,8 @@ learning_args = {
     #"total-runs": "100",
     #"runs-pr-state": "100"
     }
+
+map_config = get_baseline_two_pumps_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
