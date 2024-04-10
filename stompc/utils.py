@@ -131,7 +131,7 @@ def build_uppaal_2d_array_string(type, name, array):
 
     return uppaal_array
 
-def unpack_array(arr, arr_name):
+def unpack_array(array, array_name):
     """
     Unpacks an array so that it can be used in training query
     
@@ -139,9 +139,9 @@ def unpack_array(arr, arr_name):
     @arr_name: the name of the array in uppaal
     """
     lst_string = []
-    for i in range(0, len(arr)):
-        for j in range(0, len(arr[0])):
-            lst_string.append("{}[{}][{}]".format(arr_name, i,j))
+    for i in range(0, len(array)):
+        for j in range(0, len(array[0])):
+            lst_string.append("{}[{}][{}]".format(array_name, i,j))
 
     return ",".join(lst_string) 
 
