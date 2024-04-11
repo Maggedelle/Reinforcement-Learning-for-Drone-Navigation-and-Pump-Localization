@@ -1,5 +1,5 @@
-from classes import State, DroneSpecs, Point, DIRS_8, DIRS_4
-import math
+from classes import State, DroneSpecs
+from collections import Counter
 PI_upper = 3.14
 PI_lower = -3.14
 PI_half_pos = 1.57
@@ -145,29 +145,22 @@ def unpack_array(array, array_name):
 
     return ",".join(lst_string) 
 
-N = Point(-1, 0)
-NE = Point(-1, -1)
-E = Point(0, -1)
-SE = Point(1, -1)
-S = Point(1, 0)
-SW = Point(1, 1)
-W = Point(0, 1)
-NW = Point(-1, 1)
-
-def measure_closure(map: list, x: int, y: int) -> float:
+#TODO: update to actually use MapConfig from Magnus' branch
+def measure_coverage(state: State, total_cells: int) -> float:
     """
-    measure_closure(map: list, x: int, y: int) -> float
+    measure_coverage: State -> int -> float
+    @state: the state containing map
+    @map_cfg: the map config containing the number of cells that the floor comprise of
 
-    Returns the measure of how closed the map is.
-    The measure is saying how long the gaps in the walls are compared to the length of the wall.
+    Returns the % of how much is discovered compared to how many cells we know there are.
     """
+    map = state.map
+    N_cells_total = total_cells
+    N_cells_covered= 0
 
-    # Find the nearest wall. This is used as the starting point for the measure
-    drone_pos = Point(x,y)
-    wall_start = None
-    cells_from_drone = 0
-    for dir in DIRS_4:
-        temp_point = drone_pos
-        while True:
-            #TODO: Her skal jeg lave så jeg finder hvilken dir der er tættest på en væg
-            NotImplemented
+    for row in map:
+        cnt = Counter(row)
+        N_cells_covered += cnt[0]
+    
+
+    return (N_cells_covered / N_cells_total) * 100
