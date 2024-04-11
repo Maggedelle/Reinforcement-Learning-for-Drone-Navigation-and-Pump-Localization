@@ -15,7 +15,7 @@ from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment, build_uppaal_2d_array_string, unpack_environment
-from utils import turn_drone, shield_action
+from utils import turn_drone, shield_action, run_pump_detection
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
@@ -44,7 +44,8 @@ learning_args = {
     #"runs-pr-state": "100"
     }
 
-map_config = get_baseline_two_pumps_config()
+global map_config
+map_config = get_baseline_one_pump_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
@@ -107,7 +108,8 @@ def activate_action(action):
     time.sleep(0.5)
     state = map_processing.process_map_data(curr_x, curr_y)
     state.yaw = yaw
-
+    global map_config
+    map_config = run_pump_detection(state,map_config,drone_specs)
     return state
 
 

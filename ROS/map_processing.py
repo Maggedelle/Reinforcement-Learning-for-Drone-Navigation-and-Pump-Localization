@@ -85,7 +85,7 @@ def process_map_data(drone_x, drone_y) -> State:
             testfile.write(', '.join(string_row) + '\n')
             y = 0
             
-    return State(matrix, x_index, y_index, width, height, granularity)        
+    return State(matrix, x_index, y_index, width, height, granularity, x_offset, y_offset)        
 
 
 

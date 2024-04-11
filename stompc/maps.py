@@ -5,7 +5,7 @@ from classes import Pump,MapConfig
 ### BASELINE MAP WITH ONE PUMP ###
 ##################################
 def get_baseline_one_pump_config():
-    pump = Pump(3.5,4.2)
+    pump = Pump(-4.5,-7.5)
     config = MapConfig(pumps=[pump])
     return config
 
