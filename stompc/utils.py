@@ -270,7 +270,6 @@ def unpack_array(array, array_name):
 
     return ",".join(lst_string) 
 
-#TODO: update to actually use MapConfig from Magnus' branch
 def measure_coverage(state: State, map_cfg: MapConfig) -> float:
     """
     measure_coverage: State -> MapConfig -> float
