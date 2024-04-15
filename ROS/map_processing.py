@@ -76,6 +76,11 @@ def process_map_data(drone_x: float, drone_y: float, map_config: MapConfig) -> S
             continue
         elif pump.has_been_discovered == False:
             matrix[pump_y_index][pump_x_index] = 2
+        elif pump.has_been_discovered == True and pump in map_config.fake_pumps:
+            matrix[pump_y_index][pump_x_index] = 0
+        elif pump.has_been_discovered == True and pump in map_config.pumps:
+            matrix[pump_y_index][pump_x_index] = 3
+
 
     x = 0
     y = 0
