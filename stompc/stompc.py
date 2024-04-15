@@ -15,8 +15,9 @@ from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string
+from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection
 from classes import State, DroneSpecs, TrainingParameters
+from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
@@ -30,18 +31,21 @@ INITIAL_Y = 0.0
 half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
 full_PI_turn = 3.14    # 180 degress turn
-e = 0.2
+e = 0.1
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
 training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0)
 learning_args = {
-    "max-iterations": "2",
+    "max-iterations": "1",
     #"reset-no-better": "2",
     #"good-runs": "100",
     #"total-runs": "100",
     #"runs-pr-state": "100"
     }
+
+global map_config
+map_config = get_baseline_one_pump_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
@@ -58,36 +62,26 @@ def activate_action(action):
     match action:
         case 10:
             y-=0.5
-            time.sleep(1)
         case 11:
             x+=0.5
-            time.sleep(1)
         case 12:
             y+=0.5
-            time.sleep(1)
         case 13:
             x-=0.5
-            time.sleep(1)
         case 20:
             y-=1
-            time.sleep(1)
         case 21:
             x+=1
-            time.sleep(1)
         case 22:
             y+=1
-            time.sleep(1)
         case 23:
             x-=1
-            time.sleep(1)
         case 4:
             yaw = turn_drone(yaw, half_PI_left)
             time.sleep(2.5)
-
         case 5:
             yaw = turn_drone(yaw, half_PI_right)
             time.sleep(2.5)
-
         case 6:
             yaw = turn_drone(yaw,full_PI_turn)
             time.sleep(3.5)
@@ -104,16 +98,18 @@ def activate_action(action):
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
 
-    time.sleep(2.0)
 
     while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
         time.sleep(0.5)
         curr_x = float(vehicle_odometry.get_drone_pos_x())
         curr_y = float(vehicle_odometry.get_drone_pos_y())
 
+
+    time.sleep(0.5)
     state = map_processing.process_map_data(curr_x, curr_y)
     state.yaw = yaw
-
+    global map_config
+    map_config = run_pump_detection(state,map_config,drone_specs)
     return state
 
 
