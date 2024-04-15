@@ -1,5 +1,5 @@
 import math
-from classes import State, DroneSpecs,MapConfig, Pump
+from classes import State, DroneSpecs, MapConfig, Pump
 from collections import Counter
 
 PI_upper = 3.14
@@ -271,16 +271,16 @@ def unpack_array(array, array_name):
     return ",".join(lst_string) 
 
 #TODO: update to actually use MapConfig from Magnus' branch
-def measure_coverage(state: State, total_cells: int) -> float:
+def measure_coverage(state: State, map_cfg: MapConfig) -> float:
     """
-    measure_coverage: State -> int -> float
+    measure_coverage: State -> MapConfig -> float
     @state: the state containing map
     @map_cfg: the map config containing the number of cells that the floor comprise of
 
-    Returns the % of how much is discovered compared to how many cells we know there are.
+    Returns the % measure of how much is discovered compared to how many cells we know there are.
     """
     map = state.map
-    N_cells_total = total_cells
+    N_cells_total = map_cfg.n_cells_in_area
     N_cells_covered= 0
 
     for row in map:
