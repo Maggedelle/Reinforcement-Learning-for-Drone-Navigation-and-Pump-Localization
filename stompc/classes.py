@@ -21,11 +21,12 @@ class DroneSpecs:
 
 
 class TrainingParameters:
-    def __init__(self, open:int, turning_cost: float, moving_cost: float, discovery_reward: float):
+    def __init__(self, open:int, turning_cost: float, moving_cost: float, discovery_reward: float, pump_exploration_reward: float):
         self.open = open
         self.turning_cost = turning_cost
         self.moving_cost = moving_cost
         self.disovery_reward = discovery_reward
+        self.pump_exploration_reward = pump_exploration_reward
 
 
 

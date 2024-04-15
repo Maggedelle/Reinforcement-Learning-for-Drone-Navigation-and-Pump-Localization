@@ -35,13 +35,13 @@ e = 0.1
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
-training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0)
+training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "1",
-    #"reset-no-better": "2",
-    #"good-runs": "100",
-    #"total-runs": "100",
-    #"runs-pr-state": "100"
+    "max-iterations": "3",
+    "reset-no-better": "2",
+    "good-runs": "100",
+    "total-runs": "100",
+    "runs-pr-state": "100"
     }
 
 global map_config
@@ -60,23 +60,32 @@ def activate_action(action):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = offboard_control_instance.yaw
+    action_is_move = False
     match action:
         case 10:
             y-=0.5
+            action_is_move = True
         case 11:
             x+=0.5
+            action_is_move = True
         case 12:
             y+=0.5
+            action_is_move = True
         case 13:
             x-=0.5
+            action_is_move = True
         case 20:
             y-=1
+            action_is_move = True
         case 21:
             x+=1
+            action_is_move = True
         case 22:
             y+=1
+            action_is_move = True
         case 23:
             x-=1
+            action_is_move = True
         case 4:
             yaw = turn_drone(yaw, half_PI_left)
             time.sleep(2.5)
@@ -93,19 +102,20 @@ def activate_action(action):
             return state
 
 
-    offboard_control_instance.x = x
-    offboard_control_instance.y = y
-    offboard_control_instance.yaw = yaw
     curr_x = float(vehicle_odometry.get_drone_pos_x())
     curr_y = float(vehicle_odometry.get_drone_pos_y())
 
+    if action_is_move:
+        offboard_control_instance.x = x
+        offboard_control_instance.y = y
+        while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
+            time.sleep(0.5)
+            curr_x = float(vehicle_odometry.get_drone_pos_x())
+            curr_y = float(vehicle_odometry.get_drone_pos_y())
+    else:
+        offboard_control_instance.yaw = yaw
 
-    while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
-        time.sleep(0.5)
-        curr_x = float(vehicle_odometry.get_drone_pos_x())
-        curr_y = float(vehicle_odometry.get_drone_pos_y())
-
-
+    
     time.sleep(0.5)
     state = map_processing.process_map_data(curr_x, curr_y,  map_config)
     state.yaw = yaw
@@ -117,7 +127,7 @@ def run(template_file, query_file, verifyta_path):
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
-        state_names=["x", "y", "yaw", "width_map","height_map", "map", "granularity_map", "open", "discovery_reward", "turning_cost", "moving_cost", "drone_diameter", "safety_range", "range_laser", "laser_range_diameter"])
+        state_names=["x", "y", "yaw", "width_map","height_map", "map", "granularity_map", "open", "discovery_reward", "turning_cost", "moving_cost", "drone_diameter", "safety_range", "range_laser", "laser_range_diameter", "pump_exploration_reward"])
     # initial drone state
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
@@ -166,7 +176,8 @@ def run(template_file, query_file, verifyta_path):
                 "open": training_parameters.open, 
                 "discovery_reward": training_parameters.disovery_reward, 
                 "turning_cost": training_parameters.turning_cost, 
-                "moving_cost": training_parameters.moving_cost, 
+                "moving_cost": training_parameters.moving_cost,
+                "pump_exploration_reward": training_parameters.pump_exploration_reward, 
                 "drone_diameter": drone_specs.drone_diameter,
                 "safety_range": drone_specs.safety_range,
                 "range_laser": drone_specs.laser_range, 
