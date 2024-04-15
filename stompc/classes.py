@@ -39,8 +39,10 @@ class Pump:
 
 
 class MapConfig:
-    def __init__(self, pumps:list[Pump], fake_pumps:list[Pump]):
+    def __init__(self, pumps:list[Pump], fake_pumps:list[Pump], n_cells_in_area: int):
         self.pumps = pumps
         self.fake_pumps = fake_pumps
+        self.n_cells_in_area = n_cells_in_area
+
 
 

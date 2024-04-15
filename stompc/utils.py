@@ -1,5 +1,7 @@
-from classes import State, DroneSpecs, MapConfig, Pump
 import math
+from classes import State, DroneSpecs, MapConfig, Pump
+from collections import Counter
+
 PI_upper = 3.14
 PI_lower = -3.14
 PI_half_pos = 1.57
@@ -108,10 +110,7 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
             return True
         case _:
             return True
-        
-
-
-
+          
 def run_pump_detection(state:State, map_config: MapConfig, drone_specs: DroneSpecs) -> MapConfig:
     """
     Returns MapConfig object, with updated pump.has_been_discovered values.
@@ -234,3 +233,58 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
                     return True 
 
     return False
+  
+def build_uppaal_2d_array_string(type, name, array):
+    """
+    Builds a 2D array to be inserted into uppaal from a python lists of lists.
+
+    @type: denotes the type of the array when it's inserted into uppaal
+    @name: the name the array is going to have in uppaal
+    @array: the content of the array
+    """
+    uppaal_array = "{} {}[{}][{}] = ".format(type, name, len(array), len(array[0]))
+    uppaal_array += "{\n"
+
+    lst_strings = []
+    for lst_ele in array:
+        arr_string = "  {"
+        arr_string += ','.join([str(x) for x in lst_ele])
+        arr_string += "}"
+        lst_strings.append(arr_string)
+    uppaal_array += ',\n'.join(lst_strings) + "\n}"
+
+
+    return uppaal_array
+
+def unpack_array(array, array_name):
+    """
+    Unpacks an array so that it can be used in training query
+    
+    @arr: the array to unpack
+    @arr_name: the name of the array in uppaal
+    """
+    lst_string = []
+    for i in range(0, len(array)):
+        for j in range(0, len(array[0])):
+            lst_string.append("{}[{}][{}]".format(array_name, i,j))
+
+    return ",".join(lst_string) 
+
+def measure_coverage(state: State, map_cfg: MapConfig) -> float:
+    """
+    measure_coverage: State -> MapConfig -> float
+    @state: the state containing map
+    @map_cfg: the map config containing the number of cells that the floor comprise of
+
+    Returns the % measure of how much is discovered compared to how many cells we know there are.
+    """
+    map = state.map
+    N_cells_total = map_cfg.n_cells_in_area
+    N_cells_covered= 0
+
+    for row in map:
+        cnt = Counter(row)
+        N_cells_covered += cnt[0]
+    
+
+    return (N_cells_covered / N_cells_total) * 100
