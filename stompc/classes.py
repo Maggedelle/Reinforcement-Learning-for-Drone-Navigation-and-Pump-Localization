@@ -40,5 +40,3 @@ class Pump:
 class MapConfig:
     def __init__(self, pumps:list[Pump]):
         self.pumps = pumps
-
-
