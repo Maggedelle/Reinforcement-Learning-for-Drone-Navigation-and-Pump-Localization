@@ -51,11 +51,12 @@ def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = offboard_control_instance.yaw
-    state = map_processing.process_map_data(x,y)
+    state = map_processing.process_map_data(x,y, map_config)
     state.yaw = yaw
     return state 
 
 def activate_action(action):
+    global map_config
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     yaw = offboard_control_instance.yaw
@@ -87,7 +88,7 @@ def activate_action(action):
             time.sleep(3.5)
         case _:
             print("unkown action")
-            state = map_processing.process_map_data(x, y)
+            state = map_processing.process_map_data(x, y, map_config)
             state.yaw = yaw
             return state
 
@@ -106,9 +107,8 @@ def activate_action(action):
 
 
     time.sleep(0.5)
-    state = map_processing.process_map_data(curr_x, curr_y)
+    state = map_processing.process_map_data(curr_x, curr_y,  map_config)
     state.yaw = yaw
-    global map_config
     map_config = run_pump_detection(state,map_config,drone_specs)
     return state
 
@@ -125,7 +125,7 @@ def run(template_file, query_file, verifyta_path):
     N = 0
     optimize = "maxE"
     learning_param = "accum_reward"
-    state = map_processing.process_map_data(x,y)
+    state = map_processing.process_map_data(x,y, map_config)
     state.yaw = offboard_control_instance.yaw
     controller.generate_query_file(optimize, learning_param,
                                    state_vars=["DroneController.DescisionState"], 

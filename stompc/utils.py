@@ -123,6 +123,11 @@ def run_pump_detection(state:State, map_config: MapConfig, drone_specs: DroneSpe
     return map_config
 
 
+def get_map_index_of_pump(state:State, pump: Pump):
+    x_index = math.floor((pump.x) / state.map_granularity) + state.map_odom_index_x
+    y_index = math.floor((pump.y) / state.map_granularity) + state.map_odom_index_y
+
+    return x_index, y_index
 
 def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs) -> bool:
     """
@@ -130,14 +135,9 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
     Returns false if drone cannot see given pump.
     """
     e_yaw = 0.2
-    x_index = pump.x / state.map_granularity
-    y_index = pump.y / state.map_granularity
-
-
-    x_index = math.floor((pump.x) / state.map_granularity) + state.map_odom_index_x
-    y_index = math.floor((pump.y) / state.map_granularity) + state.map_odom_index_y
+    x_index, y_index = get_map_index_of_pump(state,pump)
     
-    print(x_index, y_index)
+    drone_diameter_cells = int(drone_specs.drone_diameter / state.map_granularity)
     # check if x_index or y_index is out of bounds.
     # this can happend if the pumps has not been explored yet.
     if x_index > state.map_width or y_index > state.map_height:
@@ -166,7 +166,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
             upper_bound_y = state.map_height
         
         for i in range(lower_bound_x, upper_bound_x):
-            for j in range(state.map_drone_index_y + drone_specs.drone_diameter, upper_bound_y):
+            for j in range(state.map_drone_index_y + drone_diameter_cells, upper_bound_y):
                 if state.map[j][i] == 100:
                     j = upper_bound_y
                 elif i == x_index and j == y_index:
@@ -186,7 +186,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
             upper_bound_x = state.map_width
 
         for j in range(lower_bound_y, upper_bound_y):
-            for i in  range(state.map_drone_index_x + drone_specs.drone_diameter, upper_bound_x):
+            for i in  range(state.map_drone_index_x + drone_diameter_cells, upper_bound_x):
                 if state.map[j][i] == 100:
                     i = upper_bound_x
                 elif i == x_index and j == y_index:
@@ -206,7 +206,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
             upper_bound_y = 0
         
         for i in range(lower_bound_x, upper_bound_x):
-            for j in reversed(range(lower_bound_y, state.map_drone_index_y - drone_specs.drone_diameter)):
+            for j in reversed(range(lower_bound_y, state.map_drone_index_y - drone_diameter_cells)):
                 if state.map[j][i] == 100:
                     j = lower_bound_y - 1
                 elif i == x_index and j == y_index:
@@ -226,7 +226,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
             lower_bound_x = 0
 
         for j in range(lower_bound_y, upper_bound_y):
-            for i in reversed(range(lower_bound_x, state.map_drone_index_x - drone_specs.drone_diameter)):
+            for i in reversed(range(lower_bound_x, state.map_drone_index_x - drone_diameter_cells)):
                 if state.map[j][i] == 100:
                     i = lower_bound_x - 1
                 elif i == x_index and j == y_index:

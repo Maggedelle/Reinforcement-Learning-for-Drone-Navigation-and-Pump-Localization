@@ -34,10 +34,15 @@ class Pump:
     def __init__(self, x:float, y:float) -> None:
         self.x = x
         self.y = y
+
         
 
 
 class MapConfig:
-    def __init__(self, pumps:list[Pump], n_cells_in_area: int):
+    def __init__(self, pumps:list[Pump], fake_pumps:list[Pump], n_cells_in_area: int):
         self.pumps = pumps
+        self.fake_pumps = fake_pumps
         self.n_cells_in_area = n_cells_in_area
+
+
+
