@@ -3,6 +3,7 @@ from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from map_msgs.msg import OccupancyGridUpdate
 from nav_msgs.srv import GetMap
+
 import numpy as np
 import threading
 import math
@@ -10,8 +11,9 @@ import os
 import sys
 
 sys.path.insert(0, '../')
+from stompc.classes import State, MapConfig
+from stompc.utils import get_map_index_of_pump
 
-from stompc.classes import State
 class MapServiceCaller(Node):
     def __init__(self) -> None:
         super().__init__('map_listener')
@@ -27,8 +29,7 @@ class MapServiceCaller(Node):
 
 
 
-def process_map_data(drone_x, drone_y) -> State:
-
+def process_map_data(drone_x: float, drone_y: float, map_config: MapConfig) -> State:
     msg = None
     map_service_instance = MapServiceCaller()
     map_service_instance.send_request()
@@ -53,6 +54,9 @@ def process_map_data(drone_x, drone_y) -> State:
     matrix = []
     row = []
     data = msg.data
+
+    all_pumps = map_config.fake_pumps + map_config.pumps
+
     x_offset = abs(math.floor((msg.info.origin.position.x / granularity)))
     y_offset = abs(math.floor((msg.info.origin.position.y / granularity)))
 
@@ -63,6 +67,15 @@ def process_map_data(drone_x, drone_y) -> State:
         row = data[i:i + width]
         matrix.append(row)
 
+    state = State(matrix, x_index, y_index, width, height, granularity, x_offset, y_offset)
+    for pump in all_pumps:
+        pump_x_index, pump_y_index = get_map_index_of_pump(state,pump)
+        print(pump_x_index, pump_y_index)
+        if (pump_x_index >= state.map_width or pump_y_index >= state.map_height 
+            or pump_x_index < 0 or pump_y_index < 0):
+            continue
+        elif pump.has_been_discovered == False:
+            matrix[pump_y_index][pump_x_index] = 2
 
     x = 0
     y = 0
@@ -82,10 +95,12 @@ def process_map_data(drone_x, drone_y) -> State:
                     string_row.append("+")
                 elif a == 100:
                     string_row.append("-")
+                elif a == 2:
+                    string_row.append("!")
             testfile.write(', '.join(string_row) + '\n')
             y = 0
             
-    return State(matrix, x_index, y_index, width, height, granularity, x_offset, y_offset)        
+    return state
 
 
 
