@@ -287,5 +287,49 @@ def measure_coverage(state: State, map_cfg: MapConfig) -> float:
         cnt = Counter(row)
         N_cells_covered += cnt[0]
     
-
     return (N_cells_covered / N_cells_total) * 100
+
+
+map_test = []
+for line in [l.strip() for l in open('open_map_column.txt').read().strip().split('\n')]:
+    map_test.append(line.split(', '))
+
+def check_map_closed(map: list[chr], skip:int) -> bool:
+    """
+    @state: the state containing the map to be checked
+    @skip: how many cells can be "open" before it's determined that the map is not closed. This should be in meters because it will get converted to cells with the map_granularity
+
+    Returns true or false depening on if the map is closed. 
+    """
+    skip_cells = math.floor(skip / 0.05)
+    cnt_open = 0
+
+    for row in map:
+        for elem in row:
+            if elem == '+':
+                cnt_open += 1
+                if cnt_open == skip_cells:
+                    return False
+                break
+            elif elem == '-':
+                cnt_open = 0
+                break
+
+    cnt_open = 0
+    
+    map_width = len(map[0])
+    map_height = len(map)
+    for i in range(0, map_width):
+        for j in range(0, map_height):
+            if map[j][i] == '+':
+                cnt_open += 1
+                if cnt_open == skip_cells:
+                    return False
+                break
+            elif elem == '-':
+                cnt_open = 0
+                break
+
+    return True
+
+print(check_map_closed(map_test, 1))
