@@ -31,7 +31,7 @@ INITIAL_Y = 0.0
 half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
 full_PI_turn = 3.14    # 180 degress turn
-e = 0.1
+e = 0.4
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
@@ -111,6 +111,9 @@ def activate_action(action):
             curr_y = float(vehicle_odometry.get_drone_pos_y())
     else:
         offboard_control_instance.yaw = yaw
+        while((yaw - e > odom_publisher_instance.yaw or odom_publisher_instance.yaw > yaw + e)):
+            time.sleep(0.1)
+            
 
     
     state = map_processing.process_map_data(curr_x, curr_y,  map_config)
