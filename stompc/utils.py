@@ -289,3 +289,18 @@ def measure_coverage(state: State, map_cfg: MapConfig) -> float:
     
 
     return (N_cells_covered / N_cells_total) * 100
+
+def reduce_map(state:State, epsilon):
+    min_row = max(0, state.map_drone_index_y - int(epsilon / state.map_granularity))
+    max_row = min(len(state.map) - 1, state.map_drone_index_y + int(epsilon / state.map_granularity))
+    min_col = max(0, state.map_drone_index_x - int(epsilon / state.map_granularity))
+    max_col = min(len(state.map[0]) - 1, state.map_drone_index_x + int(epsilon / state.map_granularity))
+
+    reduced_map = []
+    for i in range(min_row, max_row):
+        row = []
+        for j in range(min_col, max_col):
+            row.append(state.map[i][j])
+        reduced_map.append(row)
+
+    return reduced_map

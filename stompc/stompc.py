@@ -15,7 +15,7 @@ from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor
 import time
 from model_interface import QueueLengthController
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection
+from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, reduce_map
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
@@ -168,7 +168,7 @@ def run(template_file, query_file, verifyta_path):
                 "x": state.map_drone_index_x,
                 "y": state.map_drone_index_y,
                 "yaw":  state.yaw,
-                "map": build_uppaal_2d_array_string("int", "map", state.map),
+                "map": build_uppaal_2d_array_string("int", "map",  reduce_map(state.map, 2)),
                 "width_map": state.map_width,
                 "height_map": state.map_height,
                 "granularity_map": state.map_granularity,
