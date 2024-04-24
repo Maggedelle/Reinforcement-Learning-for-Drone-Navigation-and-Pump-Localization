@@ -88,13 +88,10 @@ def activate_action(action):
             action_is_move = True
         case 4:
             yaw = turn_drone(yaw, half_PI_left)
-            time.sleep(2.5)
         case 5:
             yaw = turn_drone(yaw, half_PI_right)
-            time.sleep(2.5)
         case 6:
             yaw = turn_drone(yaw,full_PI_turn)
-            time.sleep(3.5)
         case _:
             print("unkown action")
             state = map_processing.process_map_data(x, y, map_config)
@@ -109,14 +106,13 @@ def activate_action(action):
         offboard_control_instance.x = x
         offboard_control_instance.y = y
         while((x-e > curr_x or curr_x > x+e) or (y-e > curr_y or curr_y > y+e)):
-            time.sleep(0.5)
+            time.sleep(0.1)
             curr_x = float(vehicle_odometry.get_drone_pos_x())
             curr_y = float(vehicle_odometry.get_drone_pos_y())
     else:
         offboard_control_instance.yaw = yaw
 
     
-    time.sleep(0.5)
     state = map_processing.process_map_data(curr_x, curr_y,  map_config)
     state.yaw = yaw
     map_config = run_pump_detection(state,map_config,drone_specs)
