@@ -31,17 +31,17 @@ INITIAL_Y = 0.0
 half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
 full_PI_turn = 3.14    # 180 degress turn
-e = 0.4
+e = 0.2
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
 training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "3",
-    "reset-no-better": "2",
-    "good-runs": "100",
-    "total-runs": "100",
-    "runs-pr-state": "100"
+    "max-iterations": "1",
+    #"reset-no-better": "2",
+    #"good-runs": "100",
+    #"total-runs": "100",
+    #"runs-pr-state": "100"
     }
 
 global map_config
@@ -145,6 +145,7 @@ def run(template_file, query_file, verifyta_path):
     total_time = 0.0
     k = 0  
     train = True
+    has_shielded = False
     horizon = 10
     while True:
         K_START_TIME = time.time()
@@ -168,7 +169,7 @@ def run(template_file, query_file, verifyta_path):
                 "x": state.map_drone_index_x,
                 "y": state.map_drone_index_y,
                 "yaw":  state.yaw,
-                "map": build_uppaal_2d_array_string("int", "map",  reduce_map(state.map, 2)),
+                "map": build_uppaal_2d_array_string("int", "map",  state.map),
                 "width_map": state.map_width,
                 "height_map": state.map_height,
                 "granularity_map": state.map_granularity,
@@ -187,10 +188,17 @@ def run(template_file, query_file, verifyta_path):
             controller.insert_state(uppaal_state)
             train = False
             RUN_START_TIME = time.time()
-            action_seq = controller.run(
-                learning_args=learning_args,
-                queryfile=query_file,
-                verifyta_path=verifyta_path)
+            if(has_shielded):
+                1+1
+            
+            action_seq = []
+            t = threading.Thread(target=controller.run, args=(action_seq,query_file,learning_args,verifyta_path,))
+            t.start()
+            while t.is_alive():
+                for i in range(0,4):
+                    state = activate_action(4)
+                t.join(0.2)
+
             k = 0
             RUN_END_TIME = time.time()
             K_END_TIME = time.time()
@@ -212,13 +220,14 @@ def run(template_file, query_file, verifyta_path):
             else:
                 print("shielded action: {}".format(action))
                 
-                time.sleep(3)
+                time.sleep(0)
                 state = get_current_state()
                 if(shield_action(action,state,drone_specs)):
                     state = activate_action(action)
                 else:
                     print("shielded action: {} twice, training again".format(action))
                     state = get_current_state()
+                    has_shielded = True
                     train = True
                     k = 0
         
