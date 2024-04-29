@@ -53,7 +53,11 @@ def get_current_state():
     yaw = offboard_control_instance.yaw
     state = map_processing.process_map_data(x,y, map_config)
     state.yaw = yaw
-    return state 
+    return state
+ 
+def run_action_seq(actions:list):
+    while(len(actions) > 0):
+        activate_action(actions.pop(0))
 
 def activate_action(action):
     global map_config
@@ -195,8 +199,7 @@ def run(template_file, query_file, verifyta_path):
             t = threading.Thread(target=controller.run, args=(action_seq,query_file,learning_args,verifyta_path,))
             t.start()
             while t.is_alive():
-                for i in range(0,4):
-                    state = activate_action(4)
+                run_action_seq([4,4,4,4])
                 t.join(0.2)
 
             k = 0
@@ -220,7 +223,7 @@ def run(template_file, query_file, verifyta_path):
             else:
                 print("shielded action: {}".format(action))
                 
-                time.sleep(0)
+                run_action_seq([4,4,4,4])
                 state = get_current_state()
                 if(shield_action(action,state,drone_specs)):
                     state = activate_action(action)
