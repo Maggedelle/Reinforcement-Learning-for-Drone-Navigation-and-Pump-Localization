@@ -14,6 +14,7 @@ load_dotenv()
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
+from bridges import init_clock_bridge, init_depth_camera_bridge, init_rclpy
 from environment import generate_environment
 from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, reduce_map
 from classes import State, DroneSpecs, TrainingParameters
@@ -79,7 +80,7 @@ def activate_action_with_shield(action):
             return False
     
     return True
-
+    
 
 def activate_action(action):
     global map_config
@@ -233,27 +234,11 @@ def run(template_file, query_file, verifyta_path):
             if action_was_activated == False:
                 train = True
                 k = 0
+            elif len(action_seq) == 3:
+                train = True
+                k = 0
             
         
-def init_clock_bridge():
-    print("Starting clock bridge...")
-    def run_bridge():
-        print("clock bridge started...")
-        os.system('ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock')
-    clock_bridge_thread = threading.Thread(target=run_bridge)
-    clock_bridge_thread.start()
-
-def init_depth_camera_bridge():
-    print("Starting depth_camera bridge...")
-    def run_depth_camera():
-        print("image depth_camera started...")
-        os.system('ros2 run ros_gz_bridge parameter_bridge /depth_camera/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked --ros-args -r /depth_camera/points:=/cloud')
-    depth_camera_brdige_thread = threading.Thread(target=run_depth_camera)
-    depth_camera_brdige_thread.start()
-
-def init_rclpy():
-    print("initializing rclpy")
-    rclpy.init(domain_id=int(ENV_DOMAIN))
 
 if __name__ == "__main__":
     init_rclpy()
