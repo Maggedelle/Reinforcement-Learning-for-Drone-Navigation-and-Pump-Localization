@@ -59,6 +59,28 @@ def run_action_seq(actions:list):
     while(len(actions) > 0):
         activate_action(actions.pop(0))
 
+
+def activate_action_with_shield(action):
+    """
+    Returns TRUE if action is activated
+    Returns FALSE if action is not activated / is not safe.
+    """
+    state = get_current_state()
+    if(shield_action(action,state, drone_specs)):
+        state = activate_action(action)
+    else:
+        print("shielded action: {}".format(action))
+        run_action_seq([4,4,4,4])
+        state = get_current_state()
+        if(shield_action(action,state,drone_specs)):
+            activate_action(action)
+        else:
+            print("shielded action: {} twice, training again".format(action))
+            return False
+    
+    return True
+
+
 def activate_action(action):
     global map_config
     x = float(vehicle_odometry.get_drone_pos_x())
@@ -137,7 +159,7 @@ def run(template_file, query_file, verifyta_path):
     action_seq = [-1]
     N = 0
     optimize = "maxE"
-    learning_param = "accum_reward"
+    learning_param = "accum_reward - time"
     state = map_processing.process_map_data(x,y, map_config)
     state.yaw = offboard_control_instance.yaw
     controller.generate_query_file(optimize, learning_param,
@@ -149,7 +171,6 @@ def run(template_file, query_file, verifyta_path):
     total_time = 0.0
     k = 0  
     train = True
-    has_shielded = False
     horizon = 10
     while True:
         K_START_TIME = time.time()
@@ -192,8 +213,7 @@ def run(template_file, query_file, verifyta_path):
             controller.insert_state(uppaal_state)
             train = False
             RUN_START_TIME = time.time()
-            if(has_shielded):
-                1+1
+
             
             action_seq = []
             t = threading.Thread(target=controller.run, args=(action_seq,query_file,learning_args,verifyta_path,))
@@ -217,28 +237,14 @@ def run(template_file, query_file, verifyta_path):
             k = 0
         else: 
             action = action_seq.pop(0)
+            action_was_activated = activate_action_with_shield(action)
             state = get_current_state()
-            if(shield_action(action,state, drone_specs)):
-                state = activate_action(action)
-            else:
-                print("shielded action: {}".format(action))
-                
-                run_action_seq([4,4,4,4])
-                state = get_current_state()
-                if(shield_action(action,state,drone_specs)):
-                    state = activate_action(action)
-                else:
-                    print("shielded action: {} twice, training again".format(action))
-                    state = get_current_state()
-                    has_shielded = True
-                    train = True
-                    k = 0
-        
-        
-        
-        
-            #print("actions:",action_seq)
 
+            if action_was_activated == False:
+                train = True
+                k = 0
+            
+        
 
 def init_image_bridge():
     print("Starting image bridge...")
