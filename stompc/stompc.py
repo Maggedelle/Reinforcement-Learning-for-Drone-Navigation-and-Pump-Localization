@@ -174,16 +174,9 @@ def run(template_file, query_file, verifyta_path):
     horizon = 10
     while True:
         K_START_TIME = time.time()
-        # run plant
-
-        #handle_action(next_action);
-        
-        #<- Activate the current action and receive the updated state of the world
-
-
+    
         if train == True or k % horizon == 0:
-            # at each MPC step we want a clean template copy
-            # to insert variables
+
             N = N + 1
             print("Beginning trainng for iteration {}".format(N))
 
@@ -208,12 +201,9 @@ def run(template_file, query_file, verifyta_path):
                 "range_laser": drone_specs.laser_range, 
                 "laser_range_diameter": drone_specs.laser_range_diameter
             }
-            #print(state)
-
             controller.insert_state(uppaal_state)
             train = False
             RUN_START_TIME = time.time()
-
             
             action_seq = []
             t = threading.Thread(target=controller.run, args=(action_seq,query_file,learning_args,verifyta_path,))
@@ -245,15 +235,6 @@ def run(template_file, query_file, verifyta_path):
                 k = 0
             
         
-
-def init_image_bridge():
-    print("Starting image bridge...")
-    def run_bridge():
-        print("image bridge started...")
-        os.system('ros2 run ros_gz_bridge parameter_bridge /camera@sensor_msgs/msg/Image@gz.msgs.Image')
-    image_bridge_thread = threading.Thread(target=run_bridge)
-    image_bridge_thread.start()
-
 def init_clock_bridge():
     print("Starting clock bridge...")
     def run_bridge():
@@ -284,7 +265,6 @@ if __name__ == "__main__":
     map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
     vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
     init_depth_camera_bridge()
-    #init_image_bridge()
 
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
