@@ -290,46 +290,71 @@ def measure_coverage(state: State, map_cfg: MapConfig) -> float:
     return (N_cells_covered / N_cells_total) * 100
 
 
-map_test = []
-for line in [l.strip() for l in open('open_map_column.txt').read().strip().split('\n')]:
-    map_test.append(line.split(', '))
-
-def check_map_closed(map: list[chr], skip:int) -> bool:
+def check_map_closed(state: State, skip:int) -> bool:
     """
-    @state: the state containing the map to be checked
+    @state: the state containing the map to be checked and all relevant information
     @skip: how many cells can be "open" before it's determined that the map is not closed. This should be in meters because it will get converted to cells with the map_granularity
 
-    Returns true or false depening on if the map is closed. 
+    Returns true if the map is closed, false otherwise
     """
-    skip_cells = math.floor(skip / 0.05)
-    cnt_open = 0
+    map_width = state.map_width
+    map_height = state.map_height 
+    open_cells = math.floor(skip / state.map_granularity)
 
-    for row in map:
-        for elem in row:
-            if elem == '+':
-                cnt_open += 1
-                if cnt_open == skip_cells:
-                    return False
-                break
-            elif elem == '-':
-                cnt_open = 0
+    cnt_open_left = 0
+    cnt_open_right = 0
+
+    for i in range(0,map_height):
+        found_left = None
+        found_right = None
+        for j in range(0,map_width):
+            if found_left == None:
+                if map[i][j] == '+':
+                    cnt_open_left += 1
+                    if cnt_open_left == open_cells:
+                        return False
+                    found_left = True
+                elif map[i][j] == '-':
+                    cnt_open_left = 0
+                    found_left = True
+            if found_right == None:
+                if map[i][map_width-j-1] == '+':
+                    cnt_open_right += 1
+                    if cnt_open_right == open_cells:
+                        return False
+                    found_right = True
+                elif map[i][map_width-j-1] == '-':
+                    cnt_open_right = 0
+                    found_left = True
+            if found_left and found_right:
                 break
 
-    cnt_open = 0
+    cnt_open_down = 0
+    cnt_open_up = 0
     
-    map_width = len(map[0])
-    map_height = len(map)
     for i in range(0, map_width):
+        found_down = None
+        found_up = None
         for j in range(0, map_height):
-            if map[j][i] == '+':
-                cnt_open += 1
-                if cnt_open == skip_cells:
-                    return False
+            if found_down == None:
+                if map[j][i] == '+':
+                    cnt_open_down += 1
+                    if cnt_open_down == open_cells:
+                        return False
+                    found_down = True
+                elif map[j][i] == '-':
+                    cnt_open_down = 0
+                    found_down = True
+            if found_up == None:
+                if map[map_height-j-1][i] == '+':
+                    cnt_open_up += 1
+                    if cnt_open_up == open_cells:
+                        return False
+                    found_up = True
+                elif map[map_height-j-1][i] == '-':
+                    cnt_open_up = 0
+                    found_up = True
+            if found_down and found_up:
                 break
-            elif elem == '-':
-                cnt_open = 0
-                break
-
+                    
     return True
-
-print(check_map_closed(map_test, 1))
