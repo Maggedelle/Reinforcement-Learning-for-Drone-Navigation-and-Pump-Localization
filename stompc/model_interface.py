@@ -1,6 +1,6 @@
 import strategoutil as sutil
 from strategoutil import StrategoController
-
+from multiprocessing import Process, Queue
 class QueueLengthController(StrategoController):
     def __init__(self, templatefile, state_names):
         super().__init__(templatefile, state_names)
@@ -30,9 +30,9 @@ class QueueLengthController(StrategoController):
 
     def generate_strategy_query(self,optimize, learning_param, state_vars, point_vars):
 
-        time_to_reach_stop_condition = "31"
+        time_to_reach_stop_condition = "11"
         
-        stop_condition = "(DroneController.target || time >= 30)"
+        stop_condition = "(DroneController.target || time >= 10)"
 
         strategy_string = "strategy opt = {}({}) [<={}]".format(optimize, learning_param, time_to_reach_stop_condition)
         strategy_string += "{" + ",".join(state_vars) + "}"
@@ -61,4 +61,5 @@ class QueueLengthController(StrategoController):
         tpls = sutil.get_int_tuples(output)
         result = sutil.get_duration_action(tpls, max_time=1000)
         d,a = list(zip(*result))
-        actions.extend(a) 
+        actions.send(a)
+        actions.close()
