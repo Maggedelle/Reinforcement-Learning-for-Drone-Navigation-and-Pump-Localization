@@ -17,7 +17,7 @@ import time
 from model_interface import QueueLengthController
 from bridges import init_clock_bridge, init_depth_camera_bridge, init_rclpy
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, reduce_map
+from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
@@ -211,7 +211,7 @@ def run(template_file, query_file, verifyta_path):
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
-    while True:
+    while not all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) or not check_map_closed(state, 0.5):
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
@@ -292,6 +292,9 @@ def run(template_file, query_file, verifyta_path):
             elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
                 k = 0
+
+    offboard_control_instance.shutdown_drone = True
+    exit()
             
         
 
