@@ -34,17 +34,17 @@ half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
 full_PI_turn = 3.14    # 180 degress turn
 e_turn = 0.05
-e_move = 0.05
+e_move = 0.1
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
-training_parameters = TrainingParameters(open=1, turning_cost=0.0, moving_cost=0.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
+training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "6",
     "reset-no-better": "2",
-    #"good-runs": "100",
-    #"total-runs": "100",
-    #"runs-pr-state": "100"
+    "good-runs": "100",
+    "total-runs": "100",
+    "runs-pr-state": "100"
     }
 
 global map_config
