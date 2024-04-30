@@ -293,8 +293,10 @@ def run(template_file, query_file, verifyta_path):
                 train = True
                 k = 0
 
+    print("Drone finsihed. Turning off drone")
     offboard_control_instance.shutdown_drone = True
-    exit()
+
+
             
         
 
