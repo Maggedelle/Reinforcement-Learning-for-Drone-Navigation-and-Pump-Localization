@@ -302,14 +302,14 @@ def run(template_file, query_file, verifyta_path):
 
 if __name__ == "__main__":
     init_rclpy()
-    init_clock_bridge()
+    #init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
     odom_publisher_instance = odom_publisher.FramePublisher()
     odom_publisher.init(odom_publisher_instance)
     map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
     vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
-    init_depth_camera_bridge()
+    #init_depth_camera_bridge()
 
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
