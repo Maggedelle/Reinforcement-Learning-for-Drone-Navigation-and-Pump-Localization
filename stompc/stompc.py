@@ -15,9 +15,9 @@ load_dotenv()
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
-from bridges import init_clock_bridge, init_depth_camera_bridge, init_rclpy
+from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, reduce_map
+from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
@@ -211,7 +211,7 @@ def run(template_file, query_file, verifyta_path):
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
-    while True:
+    while not all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) or not check_map_closed(state, 0.5):
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
@@ -292,19 +292,20 @@ def run(template_file, query_file, verifyta_path):
             elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
                 k = 0
-            
-        
+
+    print("Drone finsihed. Turning off drone")
+    offboard_control_instance.shutdown_drone = True
 
 if __name__ == "__main__":
     init_rclpy()
-    init_clock_bridge()
+    #init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
     odom_publisher_instance = odom_publisher.FramePublisher()
     odom_publisher.init(odom_publisher_instance)
     map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
     vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
-    init_depth_camera_bridge()
+    #init_depth_camera_bridge()
 
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
@@ -324,3 +325,4 @@ if __name__ == "__main__":
         time.sleep(0.1)
     time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
+    shutdown_rclpy()

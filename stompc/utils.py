@@ -297,6 +297,7 @@ def check_map_closed(state: State, skip:int) -> bool:
 
     Returns true if the map is closed, false otherwise
     """
+    map = state.map
     map_width = state.map_width
     map_height = state.map_height 
     open_cells = math.floor(skip / state.map_granularity)
