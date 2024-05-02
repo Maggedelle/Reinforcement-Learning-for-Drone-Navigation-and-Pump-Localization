@@ -15,7 +15,7 @@ load_dotenv()
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
-from bridges import init_clock_bridge, init_depth_camera_bridge, init_rclpy
+from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
 from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
 from classes import State, DroneSpecs, TrainingParameters
@@ -296,10 +296,6 @@ def run(template_file, query_file, verifyta_path):
     print("Drone finsihed. Turning off drone")
     offboard_control_instance.shutdown_drone = True
 
-
-            
-        
-
 if __name__ == "__main__":
     init_rclpy()
     #init_clock_bridge()
@@ -329,3 +325,4 @@ if __name__ == "__main__":
         time.sleep(0.1)
     time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
+    shutdown_rclpy()

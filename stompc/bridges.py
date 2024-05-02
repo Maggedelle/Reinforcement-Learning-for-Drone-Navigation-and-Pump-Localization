@@ -29,3 +29,7 @@ def init_depth_camera_bridge():
 def init_rclpy():
     print("initializing rclpy")
     rclpy.init(domain_id=int(ENV_DOMAIN))
+
+def shutdown_rclpy():
+    print('Shutting down rclpy')
+    rclpy.shutdown()
