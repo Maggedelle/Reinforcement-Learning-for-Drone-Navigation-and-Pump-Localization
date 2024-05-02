@@ -12,6 +12,7 @@ sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
 
+from gz_utils import run_gz, kill_gz, run_xrce_agent, kill_xrce_agent
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
@@ -298,6 +299,9 @@ def run(template_file, query_file, verifyta_path):
 
 if __name__ == "__main__":
     init_rclpy()
+    run_gz()
+    run_xrce_agent()
+    time.sleep(5)
     #init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
