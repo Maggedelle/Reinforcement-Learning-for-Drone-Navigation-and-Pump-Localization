@@ -12,7 +12,7 @@ sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
 
-from gz_utils import run_gz, kill_gz, run_xrce_agent, kill_xrce_agent
+from gz_utils import run_gz, kill_gz, run_xrce_agent, kill_xrce_agent, run_launch_file, kill_launch_file
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
@@ -27,6 +27,8 @@ global map_drone_tf_listener_instance
 
 ENV_DOMAIN = os.environ['DOMAIN']
 ENV_VERIFYTA_PATH = os.environ['VERIFYTA_PATH']
+ENV_GZ_PATH = os.environ['GZ_PATH']
+ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 INITIAL_X = 0.0
 INITIAL_Y = 0.0
@@ -299,9 +301,9 @@ def run(template_file, query_file, verifyta_path):
 
 if __name__ == "__main__":
     init_rclpy()
-    run_gz()
+    run_gz(GZ_PATH=ENV_GZ_PATH)
     run_xrce_agent()
-    time.sleep(5)
+    time.sleep(10)
     #init_clock_bridge()
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
@@ -329,4 +331,6 @@ if __name__ == "__main__":
         time.sleep(0.1)
     time.sleep(5)
     run(template_file, query_file, args.verifyta_path)
+    kill_gz()
+    kill_xrce_agent()
     shutdown_rclpy()
