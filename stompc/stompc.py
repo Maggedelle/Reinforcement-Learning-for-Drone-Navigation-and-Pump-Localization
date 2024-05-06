@@ -21,6 +21,7 @@ from environment import generate_environment
 from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
+
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
@@ -30,8 +31,13 @@ ENV_VERIFYTA_PATH = os.environ['VERIFYTA_PATH']
 ENV_GZ_PATH = os.environ['GZ_PATH']
 ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
-INITIAL_X = 0.0
-INITIAL_Y = 0.0
+#Experiment settings
+NUMBER_OF_RUNS = 2
+TIME_PER_RUN = 300
+RUN_START = time.time()
+TOTAL_TIME = 0
+ALLOWED_GAP_IN_MAP = 0.5
+
 
 half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
@@ -151,6 +157,7 @@ def get_drone_pos_based_on_action(action,x,y,yaw):
     return x,y,yaw
 
 def activate_action(action):
+    global TOTAL_TIME
     global map_config
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
@@ -172,14 +179,16 @@ def activate_action(action):
     if action_is_move:
         offboard_control_instance.x = x
         offboard_control_instance.y = y
-        while((x-e_move> curr_x or curr_x > x+e_move) or (y- e_move > curr_y or curr_y > y+e_move)):
+        while((x-e_move> curr_x or curr_x > x+e_move) or (y- e_move > curr_y or curr_y > y+e_move)) and TOTAL_TIME < TIME_PER_RUN:
             time.sleep(0.1)
             curr_x = float(vehicle_odometry.get_drone_pos_x())
             curr_y = float(vehicle_odometry.get_drone_pos_y())
+            TOTAL_TIME += time.time() - RUN_START
     else:
         offboard_control_instance.yaw = yaw
-        while((yaw - e_turn > odom_publisher_instance.yaw or odom_publisher_instance.yaw > yaw + e_turn)):
+        while((yaw - e_turn > odom_publisher_instance.yaw or odom_publisher_instance.yaw > yaw + e_turn) and TOTAL_TIME < TIME_PER_RUN):
             time.sleep(0.1)
+            TOTAL_TIME += time.time() - RUN_START
             
 
     
@@ -189,7 +198,8 @@ def activate_action(action):
     return state
 
 
-def run(template_file, query_file, verifyta_path):
+def run(template_file, query_file, verifyta_path, run_number):
+    global TOTAL_TIME
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
@@ -209,12 +219,11 @@ def run(template_file, query_file, verifyta_path):
                                    observables=["action"])
 
 
-    total_time = 0.0
     k = 0
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
-    while not all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) or not check_map_closed(state, 0.5):
+    while all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) == False and check_map_closed(state, ALLOWED_GAP_IN_MAP) == False and TOTAL_TIME < TIME_PER_RUN:
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
@@ -249,7 +258,7 @@ def run(template_file, query_file, verifyta_path):
             }
             controller.insert_state(uppaal_state)
             train = False
-            RUN_START_TIME = time.time()
+            UPPAAL_START_TIME = time.time()
             
             
             parent_conn, child_conn = Pipe()
@@ -271,13 +280,12 @@ def run(template_file, query_file, verifyta_path):
                 state = get_current_state()
                 continue
             k = 0
-            RUN_END_TIME = time.time()
+            UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
             iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
-            learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3 / 1000
-            total_time += iteration_time / 60
-            print("Training frIteration {} took: {:0.4f} seconds, training took: {:0.4f} seconds, total time spent: {:0.2f} minutes".format(N, iteration_time, learning_time, total_time))
-            print("got action sequence from STRATEGO: ", action_seq)
+            learning_time = (UPPAAL_END_TIME-UPPAAL_START_TIME)*10**3 / 1000
+            print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
+            print("Got action sequence from STRATEGO: ", action_seq)
         
         k=k+1
         if(len(action_seq) == 0):
@@ -295,41 +303,49 @@ def run(template_file, query_file, verifyta_path):
             elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
                 k = 0
+        TOTAL_TIME += time.time() - RUN_START
+        print("Total time spent currently for run {}: {:0.2f}".format(run_number, TOTAL_TIME/60))
 
-    print("Drone finsihed. Turning off drone")
+    print("Run number {} finished. Turning off drone and getting ready for reset".format(run_number))
     offboard_control_instance.shutdown_drone = True
+    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP)
 
 if __name__ == "__main__":
     init_rclpy()
-    run_xrce_agent()
-    run_gz(GZ_PATH=ENV_GZ_PATH)
-    time.sleep(15)
-    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
-    offboard_control_instance = offboard_control.OffboardControl()
-    offboard_control.init(offboard_control_instance)
-    odom_publisher_instance = odom_publisher.FramePublisher()
-    odom_publisher.init(odom_publisher_instance)
-    map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
-    vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
-        help="Path to Stratego .xml file model template")
-    ap.add_argument("-q", "--query-file", default="query.q",
-        help="Path to Stratego .q query file")
-    ap.add_argument("-v", "--verifyta-path", default=ENV_VERIFYTA_PATH, help=
-        "Path to verifyta executable")
+    for i in range(0,NUMBER_OF_RUNS):
+        print("Beginning run {}".format(i+1))
+        run_xrce_agent()
+        run_gz(GZ_PATH=ENV_GZ_PATH)
+        time.sleep(20)
+        run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
+        offboard_control_instance = offboard_control.OffboardControl()
+        offboard_control.init(offboard_control_instance)
+        odom_publisher_instance = odom_publisher.FramePublisher()
+        odom_publisher.init(odom_publisher_instance)
+        map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
+        vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
 
-    args = ap.parse_args()
+        ap = argparse.ArgumentParser()
+        ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
+            help="Path to Stratego .xml file model template")
+        ap.add_argument("-q", "--query-file", default="query.q",
+            help="Path to Stratego .q query file")
+        ap.add_argument("-v", "--verifyta-path", default=ENV_VERIFYTA_PATH, help=
+            "Path to verifyta executable")
 
-    base_path = os.path.dirname(os.path.realpath(__file__)) 
-    template_file = os.path.join(base_path, args.template_file)
-    query_file = os.path.join(base_path, args.query_file)
-    while offboard_control_instance.has_aired == False:
-        print(offboard_control_instance.vehicle_local_position.z)
-        time.sleep(0.1)
-    run(template_file, query_file, args.verifyta_path)
-    kill_gz()
-    kill_xrce_agent()
-    kill_launch_file()
-    shutdown_rclpy()
+        args = ap.parse_args()
+        base_path = os.path.dirname(os.path.realpath(__file__)) 
+        template_file = os.path.join(base_path, args.template_file)
+        query_file = os.path.join(base_path, args.query_file)
+        
+        while offboard_control_instance.has_aired == False:
+            #print(offboard_control_instance.vehicle_local_position.z)
+            time.sleep(0.1)
+
+        pumps_found, map_closed = run(template_file, query_file, args.verifyta_path, i)
+        print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total time taken (in minutes): {}".format(i, pumps_found, map_closed, TOTAL_TIME / 60))
+        kill_gz()
+        kill_xrce_agent()
+        kill_launch_file()
+        time.sleep(10)

@@ -20,7 +20,7 @@ def run_launch_file(LAUNCH_PATH: str):
     
 def kill_launch_file():
     print('Killing launch file')
-    launch_process.send_signal(signal.SIGINT)
+    launch_process.kill()
 
 def run_gz(GZ_PATH: str):
     global gz_process
