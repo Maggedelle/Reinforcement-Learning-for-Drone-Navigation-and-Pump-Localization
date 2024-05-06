@@ -34,9 +34,9 @@ def generate_launch_description():
             description='Namespace for sample topics'   
         ),
 
-        slam_toolbox_node,
         clock_bridge,
         depth_camera_bridge,
+        slam_toolbox_node,
 
         Node(
             package='pointcloud_to_laserscan', executable='pointcloud_to_laserscan_node',

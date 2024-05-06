@@ -22,11 +22,9 @@ class MapServiceCaller(Node):
             self.get_logger().info('service not available, waiting again...')
         self.req = GetMap.Request()
 
-
     def send_request(self):
         self.future = self.cli.call_async(self.req)
         
-
 
 
 def process_map_data(drone_x: float, drone_y: float, map_config: MapConfig) -> State:
