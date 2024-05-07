@@ -306,10 +306,10 @@ def check_map_closed(state: State, skip:int) -> bool:
     cnt_open_right = 0
 
     for i in range(0,map_height):
-        found_left = None
-        found_right = None
+        found_left = False
+        found_right = False
         for j in range(0,map_width):
-            if found_left == None:
+            if found_left == False:
                 if map[i][j] == '+':
                     cnt_open_left += 1
                     if cnt_open_left == open_cells:
@@ -318,7 +318,7 @@ def check_map_closed(state: State, skip:int) -> bool:
                 elif map[i][j] == '-':
                     cnt_open_left = 0
                     found_left = True
-            if found_right == None:
+            if found_right == False:
                 if map[i][map_width-j-1] == '+':
                     cnt_open_right += 1
                     if cnt_open_right == open_cells:
@@ -334,10 +334,10 @@ def check_map_closed(state: State, skip:int) -> bool:
     cnt_open_up = 0
     
     for i in range(0, map_width):
-        found_down = None
-        found_up = None
+        found_down = False
+        found_up = False
         for j in range(0, map_height):
-            if found_down == None:
+            if found_down == False:
                 if map[j][i] == '+':
                     cnt_open_down += 1
                     if cnt_open_down == open_cells:
@@ -346,7 +346,7 @@ def check_map_closed(state: State, skip:int) -> bool:
                 elif map[j][i] == '-':
                     cnt_open_down = 0
                     found_down = True
-            if found_up == None:
+            if found_up == False:
                 if map[map_height-j-1][i] == '+':
                     cnt_open_up += 1
                     if cnt_open_up == open_cells:

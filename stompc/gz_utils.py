@@ -1,4 +1,5 @@
 import os
+import sys
 import signal
 from subprocess import Popen, PIPE
 
@@ -14,13 +15,16 @@ def run_launch_file(LAUNCH_PATH: str):
     global launch_process
     print('Launching slam toolbox, PointCloud2Laserscan and all bridges')
     launch_process = Popen('ros2 launch {}/{}'.format(LAUNCH_PATH,launch_file),
-                           shell=True
-                           #stdout=PIPE,
+                           shell=True,
+                           stdout=PIPE,
+                           stderr=PIPE,
                            )
     
 def kill_launch_file():
     print('Killing launch file')
-    launch_process.kill()
+    os.kill(launch_process.pid, signal.SIGTERM)
+    #launch_process.terminate()
+
 
 def run_gz(GZ_PATH: str):
     global gz_process
@@ -48,4 +52,5 @@ def run_xrce_agent():
 def kill_xrce_agent():
     global xrce_process
     print('Killing micro agent')
-    xrce_process.kill()
+    os.kill(xrce_process.pid, signal.SIGINT)
+    #xrce_process.terminate()
