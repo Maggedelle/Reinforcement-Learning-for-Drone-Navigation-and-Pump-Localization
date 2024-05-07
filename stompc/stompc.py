@@ -33,7 +33,7 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
 NUMBER_OF_RUNS = 2
-TIME_PER_RUN = 300
+TIME_PER_RUN = 100
 RUN_START = time.time()
 CURR_TIME_SPENT = 0
 ALLOWED_GAP_IN_MAP = 0.5
@@ -304,7 +304,7 @@ def run(template_file, query_file, verifyta_path, run_number):
                 train = True
                 k = 0
         CURR_TIME_SPENT = time.time() - RUN_START
-        print("Total time spent currently for run {}: {:0.2f}".format(run_number, CURR_TIME_SPENT/60))
+        print("Total time spent currently for run {}: {:0.2f} minutes".format(run_number, CURR_TIME_SPENT/60))
 
     return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP)
 
@@ -347,11 +347,9 @@ def main():
     pumps_found, map_closed = run(template_file, query_file, args.verifyta_path, 1)
     print("Run number {} finished. Turning off drone and getting ready for reset".format(1))
     offboard_control_instance.shutdown_drone = True
-    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total time taken (in minutes): {}".format(1, pumps_found, map_closed, CURR_TIME_SPENT / 60))
-    kill_gz()
-    kill_xrce_agent()
-    kill_launch_file()
-    shutdown_rclpy()
+    #kill_gz()
+    return pumps_found, map_closed, CURR_TIME_SPENT / 60
 
 if __name__ == "__main__":
-    main()
+    pumps_found, map_closed, time_spent = main()
+    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total time taken (in minutes): {}".format(1, pumps_found, map_closed, time_spent))

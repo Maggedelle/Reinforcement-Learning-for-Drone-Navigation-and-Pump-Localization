@@ -68,7 +68,7 @@ def process_map_data(drone_x: float, drone_y: float, map_config: MapConfig) -> S
     state = State(matrix, x_index, y_index, width, height, granularity, x_offset, y_offset)
     for pump in all_pumps:
         pump_x_index, pump_y_index = get_map_index_of_pump(state,pump)
-        print(pump_x_index, pump_y_index)
+        #print(pump_x_index, pump_y_index)
         if (pump_x_index >= state.map_width or pump_y_index >= state.map_height 
             or pump_x_index < 0 or pump_y_index < 0):
             continue
