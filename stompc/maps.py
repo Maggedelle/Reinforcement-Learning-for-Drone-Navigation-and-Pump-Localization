@@ -7,7 +7,7 @@ from classes import Pump,MapConfig
 def get_baseline_one_pump_config():
     pump = Pump(-4.5,-7.2)
     fake_pump = Pump(0,-8.5)
-    config = MapConfig(pumps=[pump], fake_pumps=[fake_pump], n_cells_in_area=1000)
+    config = MapConfig(pumps=[pump], fake_pumps=[fake_pump], n_cells_in_area=11000)
     return config
 
 

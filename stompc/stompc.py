@@ -18,7 +18,7 @@ import time
 from model_interface import QueueLengthController
 from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
+from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 
@@ -306,7 +306,7 @@ def run(template_file, query_file, verifyta_path, run_number):
         CURR_TIME_SPENT = time.time() - RUN_START
         print("Total time spent currently for run {}: {:0.2f} minutes".format(run_number, CURR_TIME_SPENT/60))
 
-    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP)
+    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP), measure_coverage(get_current_state(), map_config)
 
 def main():
     global offboard_control_instance
@@ -344,12 +344,12 @@ def main():
 
     run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
     time.sleep(10)
-    pumps_found, map_closed = run(template_file, query_file, args.verifyta_path, 1)
+    pumps_found, map_closed, room_covered = run(template_file, query_file, args.verifyta_path, 1)
     print("Run number {} finished. Turning off drone and getting ready for reset".format(1))
     offboard_control_instance.shutdown_drone = True
     #kill_gz()
-    return pumps_found, map_closed, CURR_TIME_SPENT / 60
+    return pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60
 
 if __name__ == "__main__":
-    pumps_found, map_closed, time_spent = main()
-    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total time taken (in minutes): {}".format(1, pumps_found, map_closed, time_spent))
+    pumps_found, map_closed, room_covered, time_spent = main()
+    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n".format(1, pumps_found, map_closed, room_covered, time_spent))
