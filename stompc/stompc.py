@@ -12,7 +12,7 @@ sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
 
-from gz_utils import run_gz, kill_gz, run_xrce_agent, kill_xrce_agent, run_launch_file, kill_launch_file
+from gz_utils import run_gz, run_xrce_agent, run_launch_file
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
@@ -312,7 +312,7 @@ def main():
     global offboard_control_instance
     global odom_publisher_instance
     global map_drone_tf_listener_instance
-    init_rclpy()
+    init_rclpy(ENV_DOMAIN)
     print("Beginning run {}".format(1))
     run_gz(GZ_PATH=ENV_GZ_PATH)
     time.sleep(10)

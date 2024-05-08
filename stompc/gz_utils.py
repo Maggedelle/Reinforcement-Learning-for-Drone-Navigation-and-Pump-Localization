@@ -20,16 +20,6 @@ def run_launch_file(LAUNCH_PATH: str):
                            stderr=PIPE,
                            )
     print("launch file pid:",launch_process.pid)
-    
-def kill_launch_file():
-    print('Killing launch file')
-    os.kill(launch_process.pid, signal.SIGTERM)
-    os.kill(launch_process.pid+2, signal.SIGTERM)
-    os.kill(launch_process.pid+4, signal.SIGTERM)
-    os.kill(launch_process.pid+6, signal.SIGTERM)
-    os.kill(launch_process.pid+8, signal.SIGTERM)
-    #launch_process.terminate()
-
 
 def run_gz(GZ_PATH: str):
     global gz_process
@@ -41,11 +31,6 @@ def run_gz(GZ_PATH: str):
                        )
     print('gazebo pid:', gz_process.pid)
 
-def kill_gz():
-    global gz_process
-    print('Killing gz')
-    os.kill(gz_process.pid+1)
-
 def run_xrce_agent():
     global xrce_process
     print('Starting micro agent')
@@ -55,9 +40,3 @@ def run_xrce_agent():
                         stderr=PIPE,
                         )
     print('xrce pid:', xrce_process.pid)
-    
-def kill_xrce_agent():
-    global xrce_process
-    print('Killing micro agent')
-    os.kill(xrce_process.pid+1, signal.SIGINT)
-    #xrce_process.terminate()
