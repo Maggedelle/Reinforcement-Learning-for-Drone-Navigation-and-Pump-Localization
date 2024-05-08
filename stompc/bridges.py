@@ -7,7 +7,7 @@ sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
 
-ENV_DOMAIN = os.environ['DOMAIN']
+ENV_DOMAIN = '30'
 
 
 def init_clock_bridge():
