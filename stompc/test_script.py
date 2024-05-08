@@ -1,11 +1,8 @@
 import os
 import signal
 from subprocess import Popen, PIPE
-import argparse
 import time
 import psutil
-#from stompc import run_stompc
-from multiprocessing import Process, Pipe
 
 NUMBER_OF_RUNS = 2
 MAX_TIME_PER_RUN = 120
@@ -31,7 +28,7 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
                                     callback=on_terminate)
     
     gz_p = None
-    try:    
+    try:
         for p in psutil.process_iter(['cmdline']):
             if p.info['cmdline'] and 'gz' in ' '.join(p.info['cmdline']):
                 gz_p = p
@@ -42,18 +39,6 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
 
 
     return (gone, alive)
-
-def cleanup_gz():
-    gz_p = None
-    for p in psutil.process_iter(['cmdline']):
-        if p.info['cmdline'] and 'gz' in ' '.join(p.info['cmdline']):
-            gz_p = p
-    p.kill()
-
-    #parent_conn, child_conn = Pipe()
-    #stompc_proc = Process(target=run_stompc,args=(child_conn, i+1, MAX_TIME_PER_RUN))
-    #stompc_proc.start()
-    #pumps_found, map_closed, time_spent = list(parent_conn.recv())
 
 for i in range(0,NUMBER_OF_RUNS):
     print("starting run {}".format(i+1))
@@ -74,11 +59,3 @@ for i in range(0,NUMBER_OF_RUNS):
     #cleanup_gz()
     time.sleep(5)
     print("Processes killed, starting new run")
-
-
-#stompc_proc = Popen("python3 stompc.py",
-#                    shell=True,
-#                    stderr=PIPE,
-#                    )
-#print(stompc_proc.pid)
-#os.kill(stompc_proc.pid, signal.SIGINT)

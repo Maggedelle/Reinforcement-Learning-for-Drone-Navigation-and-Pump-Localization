@@ -315,7 +315,7 @@ def main():
     init_rclpy()
     print("Beginning run {}".format(1))
     run_gz(GZ_PATH=ENV_GZ_PATH)
-    time.sleep(15)
+    time.sleep(10)
     run_xrce_agent()
     time.sleep(5)
 
