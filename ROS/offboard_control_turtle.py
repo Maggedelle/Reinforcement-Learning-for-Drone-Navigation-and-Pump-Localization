@@ -34,13 +34,13 @@ class OffboardControlTurtle(Node):
         self.x = 0.0
         self.y = 0.0
         self.yaw = 0.0
+        self.is_running_action = False
 
 
     def odom_callback(self, msg):
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
         self.yaw =math.atan2(2*msg.pose.pose.orientation.w*msg.pose.pose.orientation.z, msg.pose.pose.orientation.w*msg.pose.pose.orientation.w - msg.pose.pose.orientation.z*msg.pose.pose.orientation.z)
-        print(self.yaw)
         if self.initial_position is None:
             self.initial_position = (self.x, self.y)
         else:
@@ -48,8 +48,8 @@ class OffboardControlTurtle(Node):
 
     
     def move_robot(self, distance, yaw_amount, velocity):
+        self.is_running_action = True
         command = Twist()
-        print(yaw_amount)
         if distance != None:
             command.linear.x = velocity
             self.vel_publisher.publish(command)
@@ -57,15 +57,17 @@ class OffboardControlTurtle(Node):
                 command.linear.x = 0.0
 
         if yaw_amount != None:
-            command.angular.z = -velocity
+            command.angular.z = velocity
             self.vel_publisher.publish(command)
-            while((self.yaw - 0.01 > yaw_amount or yaw_amount > self.yaw + 0.01)):
+            while((yaw_amount - 0.05 > self.yaw or self.yaw > yaw_amount + 0.05)):
                 command.angular.z = 0.0
+                print("current yaw: {}, goal is: {}".format(self.yaw, yaw_amount))
 
         
         self.vel_publisher.publish(command)
         self.initial_position = None
         self.distance_moved = 0.0
+        self.is_running_action = False
 
   
 
