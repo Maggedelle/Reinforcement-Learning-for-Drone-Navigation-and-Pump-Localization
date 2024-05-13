@@ -3,9 +3,10 @@ import signal
 from subprocess import Popen, PIPE
 import time
 import psutil
+import csv
 
 NUMBER_OF_RUNS = 2
-MAX_TIME_PER_RUN = 660
+MAX_TIME_PER_RUN = 600
 
 def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
                    timeout=None, on_terminate=None):
@@ -40,7 +41,18 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
 
     return (gone, alive)
 
-for i in range(0,NUMBER_OF_RUNS):
+file = 'Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=6_rnb=3_gr=300_tr=300_rps=100.csv'
+
+def get_number_of_lines_csv (filename):
+    number_of_lines = 0
+    with open(filename) as testfile:
+        reader = csv.reader(testfile, delimiter=',')
+        number_of_lines = len([row for row in reader])
+    return number_of_lines - 1
+
+i = 0
+number_of_lines = 0
+while number_of_lines < NUMBER_OF_RUNS:
     print("starting run {}".format(i+1))
     start_time = time.time()
     stompc_proc = psutil.Popen("python3 stompc.py",
@@ -50,8 +62,14 @@ for i in range(0,NUMBER_OF_RUNS):
     curr_time = 0
     while curr_time + 20 < MAX_TIME_PER_RUN:
         time.sleep(30)
+        check_len = get_number_of_lines_csv(file)
+        print(check_len, number_of_lines)
         curr_time = time.time() - start_time
-        print("time spent so far for run {}: {} seconds".format(i+1, curr_time))
+        print("Time spent so far for run {}: {} seconds".format(i+1, curr_time))
+        if check_len > number_of_lines:
+            number_of_lines = check_len
+            print('Run seems to be finished. Proceeding to kill processes')
+            break
 
     print("Run {} finished, killing processes".format(i+1))
     kill_proc_tree(stompc_proc.pid)

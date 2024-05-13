@@ -1,0 +1,3 @@
+found_all_pumps,map_closed,coverage_of_room,time_taken,times_trained,avg_training_time,actions_activated,possible_crash
+False,True,45.874183006535944,2.3454466541608174,4,15.109438180923462,22,False
+False,True,44.91830065359477,2.001931643486023,3,14.037302573521933,21,False

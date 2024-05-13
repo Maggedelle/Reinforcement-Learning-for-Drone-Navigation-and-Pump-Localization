@@ -7,6 +7,7 @@ import threading
 import strategoutil as sutil
 import time
 import math
+import csv
 from multiprocessing import Process, Queue, Pipe
 sys.path.insert(0, '../')
 from dotenv import load_dotenv
@@ -33,7 +34,7 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
 NUMBER_OF_RUNS = 2
-TIME_PER_RUN = 600
+TIME_PER_RUN = 120
 RUN_START = time.time()
 CURR_TIME_SPENT = 0
 ALLOWED_GAP_IN_MAP = 0.3
@@ -46,13 +47,13 @@ e_turn = 0.05
 e_move = 0.1
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "6",
-    "reset-no-better": "2",
-    "good-runs": "100",
-    "total-runs": "100",
+    "reset-no-better": "3",
+    "good-runs": "300",
+    "total-runs": "300",
     "runs-pr-state": "100"
     }
 
@@ -198,7 +199,7 @@ def activate_action(action):
     return state
 
 
-def run(template_file, query_file, verifyta_path, run_number):
+def run(template_file, query_file, verifyta_path):
     global CURR_TIME_SPENT
     print("running uppaal")
     controller = QueueLengthController(
@@ -229,6 +230,7 @@ def run(template_file, query_file, verifyta_path, run_number):
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
+            N = N + 1
 
             print("Beginning trainng for iteration {}".format(N))
 
@@ -260,9 +262,13 @@ def run(template_file, query_file, verifyta_path, run_number):
             controller.insert_state(uppaal_state)
             train = False
             UPPAAL_START_TIME = time.time()
+
+            action_seq = controller.run(
+                queryfile=query_file,
+                verifyta_path=verifyta_path,
+                learning_args=learning_args)
             
-            
-            parent_conn, child_conn = Pipe()
+            """ parent_conn, child_conn = Pipe()
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
             t.start()
             while t.is_alive():
@@ -284,14 +290,13 @@ def run(template_file, query_file, verifyta_path, run_number):
             action_seq = list(parent_conn.recv())
             if(train == True):
                 state = get_current_state()
-                continue
+                continue """
             k = 0
             UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
             iteration_time = K_END_TIME-K_START_TIME
             learning_time = UPPAAL_END_TIME-UPPAAL_START_TIME
             learning_time_accum += learning_time
-            N = N + 1
             print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
             print("Got action sequence from STRATEGO: ", action_seq)
         
@@ -308,9 +313,9 @@ def run(template_file, query_file, verifyta_path, run_number):
                 train = True
                 k = 0
                 action_seq = []
-            elif len(action_seq) == actions_left_to_trigger_learning:
+            """ elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
-                k = 0
+                k = 0 """
             
             if action_was_activated:
                 num_of_actions += 1
@@ -351,15 +356,32 @@ def main():
         print(offboard_control_instance.vehicle_local_position.z)
         time.sleep(0.1)
 
-    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
+    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)   
     time.sleep(10)
-    pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path, 1)
+    pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path)
     print("Run finished. Turning off drone and getting ready for reset")
     offboard_control_instance.shutdown_drone = True
     #kill_gz()
-    return pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions
+    return [pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions, True if room_covered > 105 else False]
+
+
+def create_csv(filename):
+    """ Used to create initial csv file  """     
+    fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    with open(filename, 'w+') as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        writer.writerow(fields)
+
+def write_to_csv(filename, res):
+    with open(filename, 'a+') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(res)
 
 if __name__ == "__main__":
-    pumps_found, map_closed, room_covered, time_spent, N, learning_time_accum, num_of_actions = main()
+    file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
+    
+    #create_csv(file_name)
+    res = main()
+    write_to_csv(file_name, res)
 
-    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n".format(pumps_found, map_closed, room_covered, time_spent, N, learning_time_accum, num_of_actions))
+    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6]))
