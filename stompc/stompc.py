@@ -33,10 +33,10 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
 NUMBER_OF_RUNS = 2
-TIME_PER_RUN = 100
+TIME_PER_RUN = 600
 RUN_START = time.time()
 CURR_TIME_SPENT = 0
-ALLOWED_GAP_IN_MAP = 0.5
+ALLOWED_GAP_IN_MAP = 0.3
 
 
 half_PI_right = 1.57   # 90 degrees right
@@ -208,6 +208,7 @@ def run(template_file, query_file, verifyta_path, run_number):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     action_seq = []
+    num_of_actions = 0
     N = 0
     optimize = "maxE"
     learning_param = "accum_reward - time"
@@ -223,12 +224,12 @@ def run(template_file, query_file, verifyta_path, run_number):
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
+    learning_time_accum = 0
     while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
 
-            N = N + 1
             print("Beginning trainng for iteration {}".format(N))
 
             controller.init_simfile()
@@ -265,6 +266,11 @@ def run(template_file, query_file, verifyta_path, run_number):
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
             t.start()
             while t.is_alive():
+                CURR_TIME_SPENT = time.time() - RUN_START
+                if CURR_TIME_SPENT > TIME_PER_RUN:
+                    t.terminate()
+                    t.join()
+                    break
                 if(len(action_seq) > 0):
                     all_actions_were_activated = run_action_seq(action_seq)
                     action_seq = []
@@ -282,8 +288,10 @@ def run(template_file, query_file, verifyta_path, run_number):
             k = 0
             UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
-            iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
-            learning_time = (UPPAAL_END_TIME-UPPAAL_START_TIME)*10**3 / 1000
+            iteration_time = K_END_TIME-K_START_TIME
+            learning_time = UPPAAL_END_TIME-UPPAAL_START_TIME
+            learning_time_accum += learning_time
+            N = N + 1
             print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
             print("Got action sequence from STRATEGO: ", action_seq)
         
@@ -303,21 +311,22 @@ def run(template_file, query_file, verifyta_path, run_number):
             elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
                 k = 0
+            
+            if action_was_activated:
+                num_of_actions += 1
         CURR_TIME_SPENT = time.time() - RUN_START
-        print("Total time spent currently for run {}: {:0.2f} minutes".format(run_number, CURR_TIME_SPENT/60))
 
-    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP), measure_coverage(get_current_state(), map_config)
+    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP), measure_coverage(get_current_state(), map_config), N, learning_time_accum / N, num_of_actions
 
 def main():
     global offboard_control_instance
     global odom_publisher_instance
     global map_drone_tf_listener_instance
     init_rclpy(ENV_DOMAIN)
-    print("Beginning run {}".format(1))
     run_gz(GZ_PATH=ENV_GZ_PATH)
     time.sleep(10)
     run_xrce_agent()
-    time.sleep(5)
+    time.sleep(3)
 
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
@@ -344,12 +353,13 @@ def main():
 
     run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
     time.sleep(10)
-    pumps_found, map_closed, room_covered = run(template_file, query_file, args.verifyta_path, 1)
-    print("Run number {} finished. Turning off drone and getting ready for reset".format(1))
+    pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path, 1)
+    print("Run finished. Turning off drone and getting ready for reset")
     offboard_control_instance.shutdown_drone = True
     #kill_gz()
-    return pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60
+    return pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions
 
 if __name__ == "__main__":
-    pumps_found, map_closed, room_covered, time_spent = main()
-    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n".format(1, pumps_found, map_closed, room_covered, time_spent))
+    pumps_found, map_closed, room_covered, time_spent, N, learning_time_accum, num_of_actions = main()
+
+    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n".format(pumps_found, map_closed, room_covered, time_spent, N, learning_time_accum, num_of_actions))

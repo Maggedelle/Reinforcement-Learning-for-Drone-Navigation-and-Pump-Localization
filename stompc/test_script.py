@@ -5,7 +5,7 @@ import time
 import psutil
 
 NUMBER_OF_RUNS = 2
-MAX_TIME_PER_RUN = 120
+MAX_TIME_PER_RUN = 660
 
 def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
                    timeout=None, on_terminate=None):
@@ -58,4 +58,4 @@ for i in range(0,NUMBER_OF_RUNS):
     #os.kill(stompc_proc.pid, signal.SIGINT)
     #cleanup_gz()
     time.sleep(5)
-    print("Processes killed, starting new run")
+    print("Processes killed")

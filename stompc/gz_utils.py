@@ -19,7 +19,7 @@ def run_launch_file(LAUNCH_PATH: str):
                            stdout=PIPE,
                            stderr=PIPE,
                            )
-    print("launch file pid:",launch_process.pid)
+    #print("launch file pid:",launch_process.pid)
 
 def run_gz(GZ_PATH: str):
     global gz_process
@@ -29,7 +29,7 @@ def run_gz(GZ_PATH: str):
                        stdout=PIPE,
                        stderr=PIPE,
                        )
-    print('gazebo pid:', gz_process.pid)
+    #print('gazebo pid:', gz_process.pid)
 
 def run_xrce_agent():
     global xrce_process
@@ -39,4 +39,4 @@ def run_xrce_agent():
                         stdout=PIPE,
                         stderr=PIPE,
                         )
-    print('xrce pid:', xrce_process.pid)
+    #print('xrce pid:', xrce_process.pid)
