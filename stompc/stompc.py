@@ -35,7 +35,7 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 #Experiment settings
 NUMBER_OF_RUNS = 2
 TIME_PER_RUN = 120
-RUN_START = time.time()
+RUN_START = None
 CURR_TIME_SPENT = 0
 ALLOWED_GAP_IN_MAP = 0.3
 
@@ -327,6 +327,8 @@ def main():
     global offboard_control_instance
     global odom_publisher_instance
     global map_drone_tf_listener_instance
+    global RUN_START
+    RUN_START = time.time()
     init_rclpy(ENV_DOMAIN)
     run_gz(GZ_PATH=ENV_GZ_PATH)
     time.sleep(10)

@@ -69,6 +69,7 @@ while number_of_lines < NUMBER_OF_RUNS:
         if check_len > number_of_lines:
             number_of_lines = check_len
             print('Run seems to be finished. Proceeding to kill processes')
+            print(f'total number of good runs so far: {number_of_lines}')
             break
 
     print("Run {} finished, killing processes".format(i+1))
