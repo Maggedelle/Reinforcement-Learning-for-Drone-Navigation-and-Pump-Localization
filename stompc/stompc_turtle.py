@@ -25,6 +25,11 @@ global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
 global map_config
+
+global south_yaw
+global north_yaw 
+global west_yaw 
+global east_yaw
 map_config = get_baseline_one_pump_config()
 ENV_VERIFYTA_PATH = os.environ['VERIFYTA_PATH']
 
@@ -35,7 +40,7 @@ e_turn = 0.05
 e_move = 0.1
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.07,safety_range=0.1,laser_range=2,laser_range_diameter=2)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "6",
@@ -77,6 +82,40 @@ def get_current_state():
     return state
     
 
+def is_yaw_in_range(yaw_to_check):
+    yaw = offboard_control_instance.yaw
+    print(yaw_to_check, yaw)
+    if yaw_to_check - 0.1 > yaw or yaw > yaw_to_check + 0.1: 
+        return False
+    else:
+        return True
+    
+
+def calculate_yaw(dir):
+    print(south_yaw,west_yaw,north_yaw,east_yaw)
+    if is_yaw_in_range(south_yaw):
+        print("im in south")
+        if dir == "RIGHT":
+            return west_yaw
+        else: return east_yaw
+    elif is_yaw_in_range(north_yaw):
+        print("im in north")
+        if dir == "RIGHT":
+            return east_yaw
+        else: return west_yaw
+    elif is_yaw_in_range(west_yaw):
+        print("im in west")
+        if dir == "RIGHT":
+            return north_yaw
+        else: return south_yaw
+    elif is_yaw_in_range(east_yaw):
+        print("im in east")
+        if dir == "RIGHT":
+            return south_yaw
+        else: return north_yaw
+
+
+
 def get_drone_pos_based_on_action(action,x,y,yaw):
     """
     Returns x,y,yaw based on some action.
@@ -100,11 +139,9 @@ def get_drone_pos_based_on_action(action,x,y,yaw):
         case 23:
             x-=1
         case 4:
-            yaw = turn_drone(yaw, half_PI_left)
+            yaw = calculate_yaw("LEFT")
         case 5:
-            yaw = turn_drone(yaw, half_PI_right)
-        case 6:
-            yaw = turn_drone(yaw,full_PI_turn)
+            yaw = calculate_yaw("RIGHT")
         case _:
             raise Exception("Unkown action")
     return x,y,yaw
@@ -151,8 +188,18 @@ def get_move_distance_from_action(action):
     else: return 1.0
 
 
-    
-
+def get_all_yaw():
+    global south_yaw
+    global north_yaw
+    global east_yaw
+    global west_yaw
+    south_yaw = offboard_control_instance.yaw
+    west_yaw = south_yaw + half_PI_right
+    west_yaw = (west_yaw + math.pi) % (2 * math.pi) - math.pi   
+    north_yaw = west_yaw + half_PI_right
+    north_yaw = (north_yaw + math.pi) % (2 * math.pi) - math.pi
+    east_yaw = north_yaw + half_PI_right
+    east_yaw = (east_yaw + math.pi) % (2 * math.pi) - math.pi
 
 def activate_action(action):
     global map_config
@@ -167,16 +214,11 @@ def activate_action(action):
             time.sleep(0.1)
     else:
         if action == 4:
-            yaw_plus_half_pi = offboard_control_instance.yaw + half_PI_left
-            yaw_plus_half_pi = (yaw_plus_half_pi + math.pi) % (2 * math.pi) - math.pi
-            radians = yaw_plus_half_pi
+            radians = calculate_yaw("LEFT")
             vel = -0.4
         else: 
-            yaw_plus_half_pi = offboard_control_instance.yaw + half_PI_right
-            yaw_plus_half_pi = (yaw_plus_half_pi + math.pi) % (2 * math.pi) - math.pi
-            radians = yaw_plus_half_pi
+            radians = calculate_yaw("RIGHT")
             vel = 0.4
-        print(radians, offboard_control_instance.yaw)
         offboard_control_instance.move_robot(None, radians, vel)
         while(offboard_control_instance.is_running_action == True):
             time.sleep(0.1)
@@ -187,13 +229,14 @@ def activate_action(action):
     
 
 def run(template_file, query_file, verifyta_path):
-    offboard_control_instance.move_robot(None, None, 0.01)
     controller = QueueLengthController(
     templatefile=template_file,
-    state_names=["x", "y", "yaw", "width_map","height_map", "map", "granularity_map", "open", "discovery_reward", "turning_cost", "moving_cost", "drone_diameter", "safety_range", "range_laser", "laser_range_diameter", "pump_exploration_reward"])
+    state_names=["x", "y", "yaw", "width_map","height_map", "map", "granularity_map", "open", "discovery_reward", "turning_cost", "moving_cost", "drone_diameter", "safety_range", "range_laser", "laser_range_diameter", "pump_exploration_reward", "north_yaw", "south_yaw", "west_yaw", "east_yaw"])
     # initial drone state
     x = offboard_control_instance.x
     y = offboard_control_instance.y
+
+    disable_stompc = False
 
     action_seq = []
     N = 0
@@ -212,9 +255,96 @@ def run(template_file, query_file, verifyta_path):
     train = True
     horizon = 10
 
-    #offboard_control_instance.move_robot(None, 1.0, 0.2)
     
-    run_action_seq([4,5,4,5])
+    get_all_yaw()
+    #run_action_seq([4,4,4,4])
+    
+    if(disable_stompc == False):
+        while not all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) or not check_map_closed(state, 0.5):
+            K_START_TIME = time.time()
+        
+            if train == True or k % horizon == 0:
+
+                N = N + 1
+                print("Beginning trainng for iteration {}".format(N))
+
+                controller.init_simfile()
+                
+                if(len(action_seq) == actions_left_to_trigger_learning):
+                    state = predict_state_based_on_action_seq(action_seq)
+                
+
+                # insert current state into simulation template
+                uppaal_state = {
+                    "x": state.map_drone_index_x,
+                    "y": state.map_drone_index_y,
+                    "yaw":  state.yaw,
+                    "map": build_uppaal_2d_array_string("int", "map",  state.map),
+                    "width_map": state.map_width,
+                    "height_map": state.map_height,
+                    "granularity_map": state.map_granularity,
+                    "open": training_parameters.open, 
+                    "discovery_reward": training_parameters.disovery_reward, 
+                    "turning_cost": training_parameters.turning_cost, 
+                    "moving_cost": training_parameters.moving_cost,
+                    "pump_exploration_reward": training_parameters.pump_exploration_reward, 
+                    "drone_diameter": drone_specs.drone_diameter,
+                    "safety_range": drone_specs.safety_range,
+                    "range_laser": drone_specs.laser_range, 
+                    "laser_range_diameter": drone_specs.laser_range_diameter,
+                    "north_yaw": north_yaw,
+                    "south_yaw": south_yaw,
+                    "west_yaw": west_yaw,
+                    "east_yaw": east_yaw
+                }
+                controller.insert_state(uppaal_state)
+                train = False
+                RUN_START_TIME = time.time()
+                
+                
+                parent_conn, child_conn = Pipe()
+                t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
+                t.start()
+                while t.is_alive():
+                    if(len(action_seq) > 0):
+                        all_actions_were_activated = run_action_seq(action_seq)
+                        action_seq = []
+                        if(all_actions_were_activated == False):
+                            train = True
+                            t.terminate()
+                            t.join()
+                    else:
+                        run_action_seq([4,4,4,4])
+                    t.join(0.2)
+                action_seq = list(parent_conn.recv())
+                if(train == True):
+                    state = get_current_state()
+                    continue
+                k = 0
+                RUN_END_TIME = time.time()
+                K_END_TIME = time.time()
+                iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
+                learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3 / 1000
+                total_time += iteration_time / 60
+                print("Training frIteration {} took: {:0.4f} seconds, training took: {:0.4f} seconds, total time spent: {:0.2f} minutes".format(N, iteration_time, learning_time, total_time))
+                print("got action sequence from STRATEGO: ", action_seq)
+            
+            k=k+1
+            if(len(action_seq) == 0):
+                train = True
+                k = 0
+            else: 
+                action = action_seq.pop(0)
+                action_was_activated = activate_action_with_shield(action)
+                state = get_current_state()
+
+                if action_was_activated == False:
+                    train = True
+                    k = 0
+                    action_seq = []
+                elif len(action_seq) == actions_left_to_trigger_learning:
+                    train = True
+                    k = 0
 
 if __name__ == "__main__":
     init_rclpy()

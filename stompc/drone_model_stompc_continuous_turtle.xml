@@ -5,6 +5,13 @@
 int x = //TAG_x;
 int y = //TAG_y;
 double yaw = //TAG_yaw;
+
+
+double north_yaw = //TAG_north_yaw;
+double south_yaw = //TAG_south_yaw;
+double east_yaw = //TAG_east_yaw;
+double west_yaw = //TAG_west_yaw;
+
 int map_width = //TAG_width_map;
 int map_height = //TAG_height_map;
 //TAG_map;
@@ -65,6 +72,15 @@ double accum_reward = 0;
 const double upper_range_pump_detection = 0.75;
 const double lower_range_pump_detection = 0.55;
 
+
+bool yaw_is_in_range(double yaw_to_check) {
+    if(yaw_to_check - 0.1 &gt; yaw || yaw &gt; yaw_to_check + 0.1) {
+        return true;
+    }else {
+        return false;
+    }
+}
+
 void calculate_reward() {
     int cells_updated = 0; // The number of cells that have been discovered / changed from unknown
     int N_forward_cells_to_update = fint(laser_range / map_granularity); // Gives us the number of drones to check in front of the drone
@@ -80,7 +96,7 @@ void calculate_reward() {
         N_diameter_cells_to_update += 1;
     }
 
-    if(PI_half_neg - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_half_neg + e_yaw) { // exploring in positive y direction
+    if(yaw_is_in_range(west_yaw)) { // exploring in positive y direction
         int lower_bound_x = x - (N_diameter_cells_to_update / 2);
         int upper_bound_x = x + (N_diameter_cells_to_update / 2);
         int upper_bound_y = y + N_forward_cells_to_update;
@@ -120,7 +136,7 @@ void calculate_reward() {
                 }
             }
         }
-    }else if(0 - e_yaw &lt; yaw &amp;&amp; yaw &lt; 0 + e_yaw) { // exploring in positive x direction
+    }else if(yaw_is_in_range(south_yaw)) { // exploring in positive x direction
         int lower_bound_y = y - (N_diameter_cells_to_update / 2);
         int upper_bound_y = y +  (N_diameter_cells_to_update / 2);
         int upper_bound_x = x + N_forward_cells_to_update;
@@ -160,7 +176,7 @@ void calculate_reward() {
                 }
             }
         }
-    }else if(PI_half_pos - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_half_pos + e_yaw) { // exploring in negative y direction
+    }else if(yaw_is_in_range(east_yaw)) { // exploring in negative y direction
         int lower_bound_x = x - (N_diameter_cells_to_update / 2);
         int upper_bound_x = x + (N_diameter_cells_to_update / 2);
         int upper_bound_y = y - N_forward_cells_to_update;
@@ -200,7 +216,7 @@ void calculate_reward() {
                 }
             }
         }
-    }else if((PI_lower - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_lower + e_yaw) || (PI_upper - e_yaw &lt; yaw &amp;&amp; yaw &lt; PI_upper + e_yaw)) { // exploring in negative x direction
+    }else if(yaw_is_in_range(north_yaw)) { // exploring in negative x direction
         int lower_bound_y = y - (N_diameter_cells_to_update / 2);
         int upper_bound_y = y +  (N_diameter_cells_to_update / 2);
         int upper_bound_x = x - N_forward_cells_to_update;
@@ -260,20 +276,19 @@ broadcast chan turn_90deg_left, turn_90deg_right, turn_180deg;</declaration>
 //          3: North (-x)
 bool can_move(int action, double step_length) {
 
-
-    if(action == 0 &amp;&amp; yaw != PI_half_pos) {
-        return false;
-    }else if(action == 1 &amp;&amp; yaw != 0) {
-        return false;
-    }else if(action == 2 &amp;&amp; yaw != PI_half_neg) {
-        return false;
-    }else if(action == 3 &amp;&amp; (yaw != PI_upper &amp;&amp; yaw != PI_lower)) {
-        return false;
-    } 
-
     int N_cells_in_dir = fint((step_length / 2) / map_granularity);
     int drone_cells_to_cover = fint((drone_diameter) / map_granularity);
     int safety_range_cells = fint(safety_range / map_granularity);
+
+    if(action == 0 &amp;&amp; !yaw_is_in_range(west_yaw)) {
+        return false;
+    }else if(action == 1 &amp;&amp; !yaw_is_in_range(south_yaw)) {
+        return false;
+    }else if(action == 2 &amp;&amp; !yaw_is_in_range(east_yaw)) {
+        return false;
+    }else if(action == 3 &amp;&amp; !yaw_is_in_range(north_yaw)) {
+        return false;
+    } 
 
     if(drone_cells_to_cover % 2 == 0) {
         drone_cells_to_cover += 1;
@@ -484,20 +499,35 @@ bool can_move(int action, double step_length) {
 		<declaration>clock c;
 
 void turn_drone(double yaw_dx) {
-    if(yaw &gt;=PI_upper &amp;&amp; yaw_dx &gt; 0) {
-        yaw = PI_lower + yaw_dx;
-    } else if (yaw &lt;= PI_lower &amp;&amp; yaw_dx &lt; 0) {
-        yaw = PI_upper + yaw_dx;
-    }else if(yaw + yaw_dx &gt; PI_upper) {
-        if(yaw == PI_half_pos || yaw == PI_half_neg) {
-            yaw = yaw * -1;
+    
+
+    if(yaw_is_in_range(south_yaw)) {
+        if(yaw_dx == half_PI_right) {
+            yaw = west_yaw;
         }else {
-            yaw = PI_lower + yaw_dx;
+            yaw = east_yaw;
+        } 
+    }else if(yaw_is_in_range(north_yaw)) {
+        if(yaw_dx == half_PI_right) {
+            yaw = east_yaw;
+        }else {
+            yaw = west_yaw;
+        } 
+    }else if(yaw_is_in_range(west_yaw)) {
+        if(yaw_dx == half_PI_right) {
+            yaw = north_yaw;
+        }else {
+            yaw = south_yaw;
         }
-    }else {
-        yaw = yaw + yaw_dx;
+    }else if(yaw_is_in_range(east_yaw)) {
+        if(yaw_dx == half_PI_right) {
+            yaw = south_yaw;
+        }else {
+            yaw = north_yaw;
+        }
     }
 
+   
     calculate_reward();
     accum_reward = accum_reward - turning_cost;
 }</declaration>
