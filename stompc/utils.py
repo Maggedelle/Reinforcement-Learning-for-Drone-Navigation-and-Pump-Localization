@@ -138,7 +138,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
     e_yaw = 0.2
     x_index, y_index = get_map_index_of_pump(state,pump)
     
-    drone_diameter_cells = int(0.75 / state.map_granularity) #TODO change to interval like in UPPAAL, 0.75 should be a TAG
+    drone_diameter_cells = int(1.5 / state.map_granularity) #TODO change to interval like in UPPAAL, 0.75 should be a TAG
     # check if x_index or y_index is out of bounds.
     # this can happend if the pumps has not been explored yet.
     if x_index > state.map_width or y_index > state.map_height:

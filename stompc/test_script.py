@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import signal
 from subprocess import Popen, PIPE
@@ -8,7 +9,7 @@ import csv
 NUMBER_OF_RUNS = 100
 MAX_TIME_PER_RUN = 600
 
-def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
+def kill_proc_tree(pid, sig=signal.SIGKILL, include_parent=True,
                    timeout=None, on_terminate=None):
     """Kill a process tree (including grandchildren) with signal
     "sig" and return a (gone, still_alive) tuple.
@@ -31,9 +32,9 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
     gz_p = None
     try:
         for p in psutil.process_iter(['cmdline']):
-            if p.info['cmdline'] and 'gz' in ' '.join(p.info['cmdline']):
+            if p.info['cmdline'] and 'gz sim' in ' '.join(p.info['cmdline']):
                 gz_p = p
-        gz_p.kill()
+        gz_p.send_signal(sig)
     except (psutil.AccessDenied, psutil.NoSuchProcess):
         print('No process with gz :thinking:')
         pass
@@ -57,7 +58,7 @@ while number_of_lines < NUMBER_OF_RUNS:
     start_time = time.time()
     stompc_proc = psutil.Popen("python3 stompc.py",
                     shell=True,
-                    stderr=PIPE,
+                    #stderr=PIPE,
                     )
     curr_time = 0
     while curr_time < MAX_TIME_PER_RUN + 60:
