@@ -7,28 +7,38 @@ import threading
 import strategoutil as sutil
 import time
 import math
+import csv
 from multiprocessing import Process, Queue, Pipe
 sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
 
+from gz_utils import run_gz, run_xrce_agent, run_launch_file
 from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
 import time
 from model_interface import QueueLengthController
 from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
+from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
+
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
 
 ENV_DOMAIN = os.environ['DOMAIN']
 ENV_VERIFYTA_PATH = os.environ['VERIFYTA_PATH']
+ENV_GZ_PATH = os.environ['GZ_PATH']
+ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
-INITIAL_X = 0.0
-INITIAL_Y = 0.0
+#Experiment settings
+NUMBER_OF_RUNS = 2
+TIME_PER_RUN = 600
+RUN_START = None
+CURR_TIME_SPENT = 0
+ALLOWED_GAP_IN_MAP = 0.3
+
 
 half_PI_right = 1.57   # 90 degrees right
 half_PI_left = -1.57   # 90 degrees left
@@ -37,14 +47,14 @@ e_turn = 0.05
 e_move = 0.1
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "6",
-    "reset-no-better": "2",
-    "good-runs": "100",
-    "total-runs": "100",
-    "runs-pr-state": "100"
+    "max-iterations": "3",
+    #"reset-no-better": "3",
+    #"good-runs": "300",
+    #"total-runs": "300",
+    #"runs-pr-state": "100"
     }
 
 global map_config
@@ -148,6 +158,7 @@ def get_drone_pos_based_on_action(action,x,y,yaw):
     return x,y,yaw
 
 def activate_action(action):
+    global CURR_TIME_SPENT
     global map_config
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
@@ -169,14 +180,16 @@ def activate_action(action):
     if action_is_move:
         offboard_control_instance.x = x
         offboard_control_instance.y = y
-        while((x-e_move> curr_x or curr_x > x+e_move) or (y- e_move > curr_y or curr_y > y+e_move)):
+        while((x-e_move> curr_x or curr_x > x+e_move) or (y- e_move > curr_y or curr_y > y+e_move)) and CURR_TIME_SPENT < TIME_PER_RUN:
             time.sleep(0.1)
             curr_x = float(vehicle_odometry.get_drone_pos_x())
             curr_y = float(vehicle_odometry.get_drone_pos_y())
+            CURR_TIME_SPENT = time.time() - RUN_START
     else:
         offboard_control_instance.yaw = yaw
-        while((yaw - e_turn > odom_publisher_instance.yaw or odom_publisher_instance.yaw > yaw + e_turn)):
+        while((yaw - e_turn > odom_publisher_instance.yaw or odom_publisher_instance.yaw > yaw + e_turn) and CURR_TIME_SPENT < TIME_PER_RUN):
             time.sleep(0.1)
+            CURR_TIME_SPENT = time.time() - RUN_START
             
 
     
@@ -187,6 +200,7 @@ def activate_action(action):
 
 
 def run(template_file, query_file, verifyta_path):
+    global CURR_TIME_SPENT
     print("running uppaal")
     controller = QueueLengthController(
         templatefile=template_file,
@@ -195,6 +209,7 @@ def run(template_file, query_file, verifyta_path):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     action_seq = []
+    num_of_actions = 0
     N = 0
     optimize = "maxE"
     learning_param = "accum_reward - time"
@@ -206,17 +221,17 @@ def run(template_file, query_file, verifyta_path):
                                    observables=["action"])
 
 
-    total_time = 0.0
     k = 0
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
-    while not all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) or not check_map_closed(state, 0.5):
+    learning_time_accum = 0
+    while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
         K_START_TIME = time.time()
-    
-        if train == True or k % horizon == 0:
 
+        if train == True or k % horizon == 0:
             N = N + 1
+
             print("Beginning trainng for iteration {}".format(N))
 
             controller.init_simfile()
@@ -246,13 +261,22 @@ def run(template_file, query_file, verifyta_path):
             }
             controller.insert_state(uppaal_state)
             train = False
-            RUN_START_TIME = time.time()
+            UPPAAL_START_TIME = time.time()
+
+            action_seq = controller.run(
+                queryfile=query_file,
+                verifyta_path=verifyta_path,
+                learning_args=learning_args)
             
-            
-            parent_conn, child_conn = Pipe()
+            """ parent_conn, child_conn = Pipe()
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
             t.start()
             while t.is_alive():
+                CURR_TIME_SPENT = time.time() - RUN_START
+                if CURR_TIME_SPENT > TIME_PER_RUN:
+                    t.terminate()
+                    t.join()
+                    break
                 if(len(action_seq) > 0):
                     all_actions_were_activated = run_action_seq(action_seq)
                     action_seq = []
@@ -266,15 +290,15 @@ def run(template_file, query_file, verifyta_path):
             action_seq = list(parent_conn.recv())
             if(train == True):
                 state = get_current_state()
-                continue
+                continue """
             k = 0
-            RUN_END_TIME = time.time()
+            UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
-            iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
-            learning_time = (RUN_END_TIME-RUN_START_TIME)*10**3 / 1000
-            total_time += iteration_time / 60
-            print("Training frIteration {} took: {:0.4f} seconds, training took: {:0.4f} seconds, total time spent: {:0.2f} minutes".format(N, iteration_time, learning_time, total_time))
-            print("got action sequence from STRATEGO: ", action_seq)
+            iteration_time = K_END_TIME-K_START_TIME
+            learning_time = UPPAAL_END_TIME-UPPAAL_START_TIME
+            learning_time_accum += learning_time
+            print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
+            print("Got action sequence from STRATEGO: ", action_seq)
         
         k=k+1
         if(len(action_seq) == 0):
@@ -289,24 +313,34 @@ def run(template_file, query_file, verifyta_path):
                 train = True
                 k = 0
                 action_seq = []
-            elif len(action_seq) == actions_left_to_trigger_learning:
+            """ elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
-                k = 0
+                k = 0 """
+            
+            if action_was_activated:
+                num_of_actions += 1
+        CURR_TIME_SPENT = time.time() - RUN_START
 
-    print("Drone finsihed. Turning off drone")
-    offboard_control_instance.shutdown_drone = True
+    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP), measure_coverage(get_current_state(), map_config), N, learning_time_accum / N, num_of_actions
 
-if __name__ == "__main__":
-    init_rclpy()
-    #init_clock_bridge()
+def main():
+    global offboard_control_instance
+    global odom_publisher_instance
+    global map_drone_tf_listener_instance
+    global RUN_START
+    RUN_START = time.time()
+    init_rclpy(ENV_DOMAIN)
+    run_gz(GZ_PATH=ENV_GZ_PATH)
+    time.sleep(10)
+    run_xrce_agent()
+    time.sleep(3)
+
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
     odom_publisher_instance = odom_publisher.FramePublisher()
     odom_publisher.init(odom_publisher_instance)
     map_drone_tf_listener_instance = vehicle_odometry.MapDroneFrameListener()
     vehicle_odometry.init_map_drone_tf(map_drone_tf_listener_instance)
-    #init_depth_camera_bridge()
-
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous.xml", 
         help="Path to Stratego .xml file model template")
@@ -316,13 +350,41 @@ if __name__ == "__main__":
         "Path to verifyta executable")
 
     args = ap.parse_args()
-
     base_path = os.path.dirname(os.path.realpath(__file__)) 
     template_file = os.path.join(base_path, args.template_file)
     query_file = os.path.join(base_path, args.query_file)
+    
     while offboard_control_instance.has_aired == False:
         print(offboard_control_instance.vehicle_local_position.z)
         time.sleep(0.1)
+
+    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)   
     time.sleep(5)
-    run(template_file, query_file, args.verifyta_path)
-    shutdown_rclpy()
+    pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path)
+    print("Run finished. Turning off drone and getting ready for reset")
+    offboard_control_instance.shutdown_drone = True
+    #kill_gz()
+    return [pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions, True if room_covered > 105 else False, False if room_covered < 10 else True]
+
+
+def create_csv(filename):
+    """ Used to create initial csv file  """     
+    fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    with open(filename, 'w+') as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        writer.writerow(fields)
+
+def write_to_csv(filename, res):
+    with open(filename, 'a+') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(res)
+
+if __name__ == "__main__":
+    #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
+    file_name = f'experiments/Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default.csv'
+    #create_csv(file_name)
+
+    res = main()
+    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n   Possible crash: {}\n   Takeoff: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6], res[7], res[8]))
+    if res[8]:
+        write_to_csv(file_name, res)

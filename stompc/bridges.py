@@ -4,11 +4,6 @@ import rclpy
 import sys
 
 sys.path.insert(0, '../')
-from dotenv import load_dotenv
-load_dotenv()
-
-ENV_DOMAIN = os.environ['DOMAIN']
-
 
 def init_clock_bridge():
     print("Starting clock bridge...")
@@ -26,7 +21,7 @@ def init_depth_camera_bridge():
     depth_camera_brdige_thread = threading.Thread(target=run_depth_camera)
     depth_camera_brdige_thread.start()
 
-def init_rclpy():
+def init_rclpy(ENV_DOMAIN: str):
     print("initializing rclpy")
     rclpy.init(domain_id=int(ENV_DOMAIN))
 
