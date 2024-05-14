@@ -34,7 +34,7 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
 NUMBER_OF_RUNS = 2
-TIME_PER_RUN = 120
+TIME_PER_RUN = 600
 RUN_START = None
 CURR_TIME_SPENT = 0
 ALLOWED_GAP_IN_MAP = 0.3
@@ -50,11 +50,11 @@ uppaa_e = 0.5
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "6",
-    "reset-no-better": "3",
-    "good-runs": "300",
-    "total-runs": "300",
-    "runs-pr-state": "100"
+    "max-iterations": "3",
+    #"reset-no-better": "3",
+    #"good-runs": "300",
+    #"total-runs": "300",
+    #"runs-pr-state": "100"
     }
 
 global map_config
@@ -226,9 +226,9 @@ def run(template_file, query_file, verifyta_path):
     train = True
     horizon = 10
     learning_time_accum = 0
-    while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)):
+    while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
         K_START_TIME = time.time()
-    
+
         if train == True or k % horizon == 0:
             N = N + 1
 
@@ -359,12 +359,12 @@ def main():
         time.sleep(0.1)
 
     run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)   
-    time.sleep(10)
+    time.sleep(5)
     pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path)
     print("Run finished. Turning off drone and getting ready for reset")
     offboard_control_instance.shutdown_drone = True
     #kill_gz()
-    return [pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions, True if room_covered > 105 else False]
+    return [pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions, True if room_covered > 105 else False, False if room_covered < 10 else True]
 
 
 def create_csv(filename):
@@ -380,10 +380,11 @@ def write_to_csv(filename, res):
         writer.writerow(res)
 
 if __name__ == "__main__":
-    file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    
+    #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
+    file_name = f'experiments/Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default.csv'
     #create_csv(file_name)
-    res = main()
-    write_to_csv(file_name, res)
 
-    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6]))
+    res = main()
+    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n   Possible crash: {}\n   Takeoff: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6], res[7], res[8]))
+    if res[8]:
+        write_to_csv(file_name, res)
