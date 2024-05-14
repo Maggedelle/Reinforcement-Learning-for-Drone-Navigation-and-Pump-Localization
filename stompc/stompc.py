@@ -33,7 +33,6 @@ ENV_GZ_PATH = os.environ['GZ_PATH']
 ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
-NUMBER_OF_RUNS = 2
 TIME_PER_RUN = 600
 RUN_START = None
 CURR_TIME_SPENT = 0
@@ -355,7 +354,7 @@ def main():
     query_file = os.path.join(base_path, args.query_file)
     
     while offboard_control_instance.has_aired == False:
-        print(offboard_control_instance.vehicle_local_position.z)
+        #print(offboard_control_instance.vehicle_local_position.z)
         time.sleep(0.1)
 
     run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)   

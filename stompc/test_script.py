@@ -35,7 +35,7 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
                 gz_p = p
         gz_p.kill()
     except (psutil.AccessDenied, psutil.NoSuchProcess):
-        print('no process with gz :thinking:')
+        print('No process with gz :thinking:')
         pass
 
 
@@ -53,7 +53,7 @@ def get_number_of_lines_csv (filename):
 i = 0
 number_of_lines = 0
 while number_of_lines < NUMBER_OF_RUNS:
-    print("starting run {}".format(i+1))
+    print("Starting run {}".format(i+1))
     start_time = time.time()
     stompc_proc = psutil.Popen("python3 stompc.py",
                     shell=True,
@@ -63,7 +63,6 @@ while number_of_lines < NUMBER_OF_RUNS:
     while curr_time < MAX_TIME_PER_RUN + 60:
         time.sleep(30)
         check_len = get_number_of_lines_csv(file)
-        print(check_len, number_of_lines)
         curr_time = time.time() - start_time
         print("Time spent so far for run {}: {} seconds".format(i+1, curr_time))
         if check_len > number_of_lines:
@@ -75,4 +74,4 @@ while number_of_lines < NUMBER_OF_RUNS:
     print("Run {} finished, killing processes".format(i+1))
     kill_proc_tree(stompc_proc.pid)
     time.sleep(5)
-    print("Processes killed")
+    print("Processes killed\n")
