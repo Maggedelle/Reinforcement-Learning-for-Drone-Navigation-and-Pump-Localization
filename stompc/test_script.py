@@ -5,7 +5,7 @@ import time
 import psutil
 import csv
 
-NUMBER_OF_RUNS = 2
+NUMBER_OF_RUNS = 100
 MAX_TIME_PER_RUN = 600
 
 def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
@@ -41,7 +41,7 @@ def kill_proc_tree(pid, sig=signal.SIGINT, include_parent=True,
 
     return (gone, alive)
 
-file = 'Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=6_rnb=3_gr=300_tr=300_rps=100.csv'
+file = 'experiments/Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=3_rnb=default_gr=default_tr=default_rps=default.csv'
 
 def get_number_of_lines_csv (filename):
     number_of_lines = 0
@@ -60,7 +60,7 @@ while number_of_lines < NUMBER_OF_RUNS:
                     stderr=PIPE,
                     )
     curr_time = 0
-    while curr_time + 20 < MAX_TIME_PER_RUN:
+    while curr_time < MAX_TIME_PER_RUN + 60:
         time.sleep(30)
         check_len = get_number_of_lines_csv(file)
         print(check_len, number_of_lines)
@@ -74,7 +74,5 @@ while number_of_lines < NUMBER_OF_RUNS:
 
     print("Run {} finished, killing processes".format(i+1))
     kill_proc_tree(stompc_proc.pid)
-    #os.kill(stompc_proc.pid, signal.SIGINT)
-    #cleanup_gz()
     time.sleep(5)
     print("Processes killed")

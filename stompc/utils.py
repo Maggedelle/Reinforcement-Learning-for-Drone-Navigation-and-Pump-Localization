@@ -305,26 +305,28 @@ def check_map_closed(state: State, skip:int) -> bool:
     cnt_open_left = 0
     cnt_open_right = 0
 
+
+    
     for i in range(0,map_height):
         found_left = False
         found_right = False
         for j in range(0,map_width):
             if found_left == False:
-                if map[i][j] == '+':
+                if map[i][j] == 0:
                     cnt_open_left += 1
                     if cnt_open_left == open_cells:
                         return False
                     found_left = True
-                elif map[i][j] == '-':
+                elif map[i][j] == 100:
                     cnt_open_left = 0
                     found_left = True
             if found_right == False:
-                if map[i][map_width-j-1] == '+':
+                if map[i][map_width-j-1] == 100:
                     cnt_open_right += 1
                     if cnt_open_right == open_cells:
                         return False
                     found_right = True
-                elif map[i][map_width-j-1] == '-':
+                elif map[i][map_width-j-1] == 0:
                     cnt_open_right = 0
                     found_left = True
             if found_left and found_right:
@@ -338,21 +340,21 @@ def check_map_closed(state: State, skip:int) -> bool:
         found_up = False
         for j in range(0, map_height):
             if found_down == False:
-                if map[j][i] == '+':
+                if map[j][i] == 100:
                     cnt_open_down += 1
                     if cnt_open_down == open_cells:
                         return False
                     found_down = True
-                elif map[j][i] == '-':
+                elif map[j][i] == 0:
                     cnt_open_down = 0
                     found_down = True
             if found_up == False:
-                if map[map_height-j-1][i] == '+':
+                if map[map_height-j-1][i] == 100:
                     cnt_open_up += 1
                     if cnt_open_up == open_cells:
                         return False
                     found_up = True
-                elif map[map_height-j-1][i] == '-':
+                elif map[map_height-j-1][i] == 0:
                     cnt_open_up = 0
                     found_up = True
             if found_down and found_up:
