@@ -7,6 +7,7 @@ import threading
 import strategoutil as sutil
 import time
 import math
+import csv
 from multiprocessing import Process, Queue, Pipe
 sys.path.insert(0, '../')
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ import time
 from model_interface import QueueLengthController
 from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
-from utils import turn_drone, shield_action, unpack_array, build_uppaal_2d_array_string, run_pump_detection, check_map_closed 
+from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
 from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 
@@ -33,10 +34,10 @@ ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
 NUMBER_OF_RUNS = 2
-TIME_PER_RUN = 100
-RUN_START = time.time()
+TIME_PER_RUN = 120
+RUN_START = None
 CURR_TIME_SPENT = 0
-ALLOWED_GAP_IN_MAP = 0.5
+ALLOWED_GAP_IN_MAP = 0.3
 
 
 half_PI_right = 1.57   # 90 degrees right
@@ -46,13 +47,13 @@ e_turn = 0.05
 e_move = 0.1
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "6",
-    "reset-no-better": "2",
-    "good-runs": "100",
-    "total-runs": "100",
+    "reset-no-better": "3",
+    "good-runs": "300",
+    "total-runs": "300",
     "runs-pr-state": "100"
     }
 
@@ -198,7 +199,7 @@ def activate_action(action):
     return state
 
 
-def run(template_file, query_file, verifyta_path, run_number):
+def run(template_file, query_file, verifyta_path):
     global CURR_TIME_SPENT
     print("running uppaal")
     controller = QueueLengthController(
@@ -208,6 +209,7 @@ def run(template_file, query_file, verifyta_path, run_number):
     x = float(vehicle_odometry.get_drone_pos_x())
     y = float(vehicle_odometry.get_drone_pos_y())
     action_seq = []
+    num_of_actions = 0
     N = 0
     optimize = "maxE"
     learning_param = "accum_reward - time"
@@ -223,12 +225,13 @@ def run(template_file, query_file, verifyta_path, run_number):
     actions_left_to_trigger_learning = 3  
     train = True
     horizon = 10
-    while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
+    learning_time_accum = 0
+    while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)):
         K_START_TIME = time.time()
     
         if train == True or k % horizon == 0:
-
             N = N + 1
+
             print("Beginning trainng for iteration {}".format(N))
 
             controller.init_simfile()
@@ -259,12 +262,21 @@ def run(template_file, query_file, verifyta_path, run_number):
             controller.insert_state(uppaal_state)
             train = False
             UPPAAL_START_TIME = time.time()
+
+            action_seq = controller.run(
+                queryfile=query_file,
+                verifyta_path=verifyta_path,
+                learning_args=learning_args)
             
-            
-            parent_conn, child_conn = Pipe()
+            """ parent_conn, child_conn = Pipe()
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
             t.start()
             while t.is_alive():
+                CURR_TIME_SPENT = time.time() - RUN_START
+                if CURR_TIME_SPENT > TIME_PER_RUN:
+                    t.terminate()
+                    t.join()
+                    break
                 if(len(action_seq) > 0):
                     all_actions_were_activated = run_action_seq(action_seq)
                     action_seq = []
@@ -278,12 +290,13 @@ def run(template_file, query_file, verifyta_path, run_number):
             action_seq = list(parent_conn.recv())
             if(train == True):
                 state = get_current_state()
-                continue
+                continue """
             k = 0
             UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
-            iteration_time = (K_END_TIME-K_START_TIME)*10**3 / 1000
-            learning_time = (UPPAAL_END_TIME-UPPAAL_START_TIME)*10**3 / 1000
+            iteration_time = K_END_TIME-K_START_TIME
+            learning_time = UPPAAL_END_TIME-UPPAAL_START_TIME
+            learning_time_accum += learning_time
             print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
             print("Got action sequence from STRATEGO: ", action_seq)
         
@@ -300,24 +313,27 @@ def run(template_file, query_file, verifyta_path, run_number):
                 train = True
                 k = 0
                 action_seq = []
-            elif len(action_seq) == actions_left_to_trigger_learning:
+            """ elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
-                k = 0
+                k = 0 """
+            
+            if action_was_activated:
+                num_of_actions += 1
         CURR_TIME_SPENT = time.time() - RUN_START
-        print("Total time spent currently for run {}: {:0.2f} minutes".format(run_number, CURR_TIME_SPENT/60))
 
-    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP)
+    return all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps), check_map_closed(state, ALLOWED_GAP_IN_MAP), measure_coverage(get_current_state(), map_config), N, learning_time_accum / N, num_of_actions
 
 def main():
     global offboard_control_instance
     global odom_publisher_instance
     global map_drone_tf_listener_instance
+    global RUN_START
+    RUN_START = time.time()
     init_rclpy(ENV_DOMAIN)
-    print("Beginning run {}".format(1))
     run_gz(GZ_PATH=ENV_GZ_PATH)
     time.sleep(10)
     run_xrce_agent()
-    time.sleep(5)
+    time.sleep(3)
 
     offboard_control_instance = offboard_control.OffboardControl()
     offboard_control.init(offboard_control_instance)
@@ -342,14 +358,32 @@ def main():
         print(offboard_control_instance.vehicle_local_position.z)
         time.sleep(0.1)
 
-    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)
+    run_launch_file(LAUNCH_PATH=ENV_LAUNCH_FILE_PATH)   
     time.sleep(10)
-    pumps_found, map_closed = run(template_file, query_file, args.verifyta_path, 1)
-    print("Run number {} finished. Turning off drone and getting ready for reset".format(1))
+    pumps_found, map_closed, room_covered, N, learning_time_accum, num_of_actions = run(template_file, query_file, args.verifyta_path)
+    print("Run finished. Turning off drone and getting ready for reset")
     offboard_control_instance.shutdown_drone = True
     #kill_gz()
-    return pumps_found, map_closed, CURR_TIME_SPENT / 60
+    return [pumps_found, map_closed, room_covered, CURR_TIME_SPENT / 60, N, learning_time_accum, num_of_actions, True if room_covered > 105 else False]
+
+
+def create_csv(filename):
+    """ Used to create initial csv file  """     
+    fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    with open(filename, 'w+') as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        writer.writerow(fields)
+
+def write_to_csv(filename, res):
+    with open(filename, 'a+') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(res)
 
 if __name__ == "__main__":
-    pumps_found, map_closed, time_spent = main()
-    print("Results for run: {}\n   Found all pumps: {}\n   Map closed: {}\n   Total time taken (in minutes): {}".format(1, pumps_found, map_closed, time_spent))
+    file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
+    
+    #create_csv(file_name)
+    res = main()
+    write_to_csv(file_name, res)
+
+    print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6]))
