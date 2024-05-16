@@ -34,7 +34,8 @@ def kill_proc_tree(pid, sig=signal.SIGKILL, include_parent=True,
         for p in psutil.process_iter(['cmdline']):
             if p.info['cmdline'] and 'gz sim' in ' '.join(p.info['cmdline']):
                 gz_p = p
-        gz_p.send_signal(sig)
+        if gz_p != None:
+            gz_p.send_signal(sig)
     except (psutil.AccessDenied, psutil.NoSuchProcess):
         print('No process with gz :thinking:')
         pass
