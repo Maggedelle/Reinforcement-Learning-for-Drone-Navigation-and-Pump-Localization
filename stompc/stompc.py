@@ -233,7 +233,6 @@ def run(template_file, query_file, verifyta_path):
 
         if train == True or k % horizon == 0:
             N = N + 1
-
             print("Beginning trainng for iteration {}".format(N))
 
             controller.init_simfile()
