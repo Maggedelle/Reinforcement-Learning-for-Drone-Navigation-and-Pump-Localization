@@ -33,10 +33,10 @@ ENV_GZ_PATH = os.environ['GZ_PATH']
 ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
-TIME_PER_RUN = 600
+TIME_PER_RUN = 1080
 RUN_START = None
 CURR_TIME_SPENT = 0
-ALLOWED_GAP_IN_MAP = 0.3
+ALLOWED_GAP_IN_MAP = 1
 
 
 half_PI_right = 1.57   # 90 degrees right
@@ -382,7 +382,7 @@ def write_to_csv(filename, res):
 
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    file_name = f'experiments/Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default.csv'
+    file_name = f'experiments/Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
     #create_csv(file_name)
 
     res, takeoff = main()
