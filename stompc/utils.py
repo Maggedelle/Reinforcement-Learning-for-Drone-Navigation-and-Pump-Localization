@@ -138,7 +138,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
     e_yaw = 0.2
     x_index, y_index = get_map_index_of_pump(state,pump)
     
-    drone_diameter_cells = int(0.75 / state.map_granularity) #TODO change to interval like in UPPAAL, 0.75 should be a TAG
+    drone_diameter_cells = int(1.5 / state.map_granularity) #TODO change to interval like in UPPAAL, 0.75 should be a TAG
     # check if x_index or y_index is out of bounds.
     # this can happend if the pumps has not been explored yet.
     if x_index > state.map_width or y_index > state.map_height:
@@ -321,12 +321,12 @@ def check_map_closed(state: State, skip:int) -> bool:
                     cnt_open_left = 0
                     found_left = True
             if found_right == False:
-                if map[i][map_width-j-1] == 100:
+                if map[i][map_width-j-1] == 0:
                     cnt_open_right += 1
                     if cnt_open_right == open_cells:
                         return False
                     found_right = True
-                elif map[i][map_width-j-1] == 0:
+                elif map[i][map_width-j-1] == 100:
                     cnt_open_right = 0
                     found_left = True
             if found_left and found_right:
@@ -340,21 +340,21 @@ def check_map_closed(state: State, skip:int) -> bool:
         found_up = False
         for j in range(0, map_height):
             if found_down == False:
-                if map[j][i] == 100:
+                if map[j][i] == 0:
                     cnt_open_down += 1
                     if cnt_open_down == open_cells:
                         return False
                     found_down = True
-                elif map[j][i] == 0:
+                elif map[j][i] == 100:
                     cnt_open_down = 0
                     found_down = True
             if found_up == False:
-                if map[map_height-j-1][i] == 100:
+                if map[map_height-j-1][i] == 0:
                     cnt_open_up += 1
                     if cnt_open_up == open_cells:
                         return False
                     found_up = True
-                elif map[map_height-j-1][i] == 0:
+                elif map[map_height-j-1][i] == 100:
                     cnt_open_up = 0
                     found_up = True
             if found_down and found_up:

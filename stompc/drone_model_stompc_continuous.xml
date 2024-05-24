@@ -104,7 +104,7 @@ void calculate_reward() {
                     j = upper_bound_y;
                 }
                 else if(map[j][i] == 2) {
-                    if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                    if(abs(j - y) &lt;= upper_range_pump_detection_cells) {
                         accum_reward = accum_reward + pump_exploration_reward;
                         map[j][i] = 3;
                     }
@@ -144,7 +144,7 @@ void calculate_reward() {
                     i = upper_bound_x;
                 }
                 else if(map[j][i] == 2) {
-                    if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                    if(abs(i - x) &lt;= upper_range_pump_detection_cells) {
                         accum_reward = accum_reward + pump_exploration_reward;
                         map[j][i] = 3;
                     }
@@ -184,7 +184,7 @@ void calculate_reward() {
                     j = upper_bound_y - 1;
                 }
                 else if(map[j][i] == 2) {
-                    if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                    if(abs(j - y) &lt;= upper_range_pump_detection_cells) {
                         accum_reward = accum_reward + pump_exploration_reward;
                         map[j][i] = 3;
                     }
@@ -224,7 +224,7 @@ void calculate_reward() {
                     i = upper_bound_x -1;
                 }
                 else if(map[j][i] == 2) {
-                    if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                    if(abs(i - x) &lt;= upper_range_pump_detection_cells) {
                         accum_reward = accum_reward + pump_exploration_reward;
                         map[j][i] = 3;
                     }
