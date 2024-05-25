@@ -383,9 +383,9 @@ def write_to_csv(filename, res):
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
     file_name = f'experiments/Experiment_open={0}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
-    create_csv(file_name)
+    #create_csv(file_name)
 
-    """ res, takeoff = main()
+    res, takeoff = main()
     print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n   Possible crash: {}\n   Takeoff: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6], res[7], takeoff))
     if takeoff:
-        write_to_csv(file_name, res) """
+        write_to_csv(file_name, res)
