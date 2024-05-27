@@ -225,14 +225,15 @@ def run(template_file, query_file, verifyta_path):
     train = True
     horizon = 10
     learning_time_accum = 0
-
     run_action_seq([4,4,4,4])
+
 
     while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
         K_START_TIME = time.time()
 
         if train == True or k % horizon == 0:
             N = N + 1
+            run_action_seq([4,4,4,4])
             print("Beginning trainng for iteration {}".format(N))
 
             controller.init_simfile()
