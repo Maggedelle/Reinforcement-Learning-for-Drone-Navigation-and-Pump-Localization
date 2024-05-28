@@ -366,7 +366,7 @@ int is_valid(int row, int col, int rows, int cols) {
 
 void set_closest_unkown_cell() {
     int prev[max_size];
-    int queue[max_size][3];
+    int queue[max_size][4];
     int visited[map_height][map_width];
     int actions_question[100];
     int actions_poi[100];
@@ -393,6 +393,7 @@ void set_closest_unkown_cell() {
     queue[rear][0] = y;
     queue[rear][1] = x;
     queue[rear][2] = -1;
+    queue[rear][3] = 0;
     rear = rear + 1;
     visited[y][x] = 1;
     prev[rear] = -1;
@@ -401,8 +402,11 @@ void set_closest_unkown_cell() {
         int row = queue[front][0];
         int col = queue[front][1];
         int dir = queue[front][2];
+        int depth = queue[front][3];
         int i;
-
+        if(depth == 20) {
+            return; 
+        }
         front = (front + 1) % max_size;
        
         if(map[row][col] == -1 &amp;&amp; found_question == false) {    
@@ -464,6 +468,7 @@ void set_closest_unkown_cell() {
                 queue[rear][0] = newRow;
                 queue[rear][1] = newCol;
                 queue[rear][2] = i;
+                queue[rear][3] = depth + 1;
                 prev[rear] = front - 1;
                 rear = (rear + 1) % max_size;
             }
