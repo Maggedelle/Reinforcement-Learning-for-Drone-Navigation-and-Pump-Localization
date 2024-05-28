@@ -57,7 +57,7 @@ def get_number_of_lines_csv (filename):
 i = 0
 number_of_lines = get_number_of_lines_csv(file)
 while number_of_lines < NUMBER_OF_RUNS:
-    print("Starting run {}".format(i+1))
+    print("Starting run")
     start_time = time.time()
     stompc_proc = psutil.Popen("python3 stompc.py",
                     shell=True,
@@ -76,7 +76,7 @@ while number_of_lines < NUMBER_OF_RUNS:
             break
     i += 1
 
-    print("Run {} finished, killing processes".format(i+1))
+    print("Run finished, killing processes".format(i+1))
     kill_proc_tree(stompc_proc.pid)
     time.sleep(5)
     print("Processes killed\n")
