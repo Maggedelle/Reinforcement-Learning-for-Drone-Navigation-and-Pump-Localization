@@ -21,7 +21,7 @@ from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
 from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
-from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
+from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config, get_baseline_big_room_config
 
 global offboard_control_instance
 global odom_publisher_instance
@@ -47,9 +47,9 @@ e_move = 0.1
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
-training_parameters = TrainingParameters(open=0, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
+training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "1",
+    "max-iterations": "3",
     #"reset-no-better": "3",
     #"good-runs": "300",
     #"total-runs": "300",
@@ -57,7 +57,7 @@ learning_args = {
     }
 
 global map_config
-map_config = get_baseline_one_pump_config()
+map_config = get_baseline_big_room_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())

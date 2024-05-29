@@ -11,6 +11,18 @@ def get_baseline_one_pump_config():
     return config
 
 
+
+
+##################################
+### BASELINE MAP WITH ONE PUMP ###
+##################################
+def get_baseline_big_room_config():
+    pump = Pump(0,14)
+
+    config = MapConfig(pumps=[pump], fake_pumps=[], n_cells_in_area=24480)
+    return config
+
+
 ###################################
 ### BASELINE MAP WITH TWO PUMPS ###
 ###################################
