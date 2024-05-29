@@ -7,7 +7,7 @@ xrce_process = None
 gz_process = None
 launch_process = None
 xrce_cmd = 'MicroXRCEAgent udp4 -p 8888'
-start_pos = "PX4_GZ_MODEL_POSE='6.0,-7.0,0.24'"
+start_pos = "PX4_GZ_MODEL_POSE='-3.5,-2.0,0.24'"
 gz_cmd = 'PX4_SYS_AUTOSTART=4002 HEADLESS=0 ' + start_pos + ' make px4_sitl gz_x500_depth'
 launch_file = 'bridges_and_nodes_launch.py'
 

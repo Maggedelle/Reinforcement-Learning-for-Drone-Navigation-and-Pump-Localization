@@ -30,9 +30,9 @@ class QueueLengthController(StrategoController):
 
     def generate_strategy_query(self,optimize, learning_param, state_vars, point_vars):
 
-        time_to_reach_stop_condition = "41"
+        time_to_reach_stop_condition = "21"
         
-        stop_condition = "(DroneController.target || time >= 40)"
+        stop_condition = "(DroneController.target || time >= 20)"
 
         strategy_string = "strategy opt = {}({}) [<={}]".format(optimize, learning_param, time_to_reach_stop_condition)
         strategy_string += "{" + ",".join(state_vars) + "}"
