@@ -110,14 +110,23 @@ def shield_action(action: int, state:State, drone_specs: DroneSpecs) -> bool:
             return True
         case _:
             return True
-          
-def run_pump_detection(state:State, map_config: MapConfig, drone_specs: DroneSpecs) -> MapConfig:
+
+
+
+def is_yaw_in_range(yaw_to_check, curr_yaw):
+    yaw = curr_yaw
+    if yaw_to_check - 0.25 > yaw or yaw > yaw_to_check + 0.25: 
+        return False
+    else:
+        return True
+
+def run_pump_detection(state:State, map_config: MapConfig, drone_specs: DroneSpecs, yaws_map) -> MapConfig:
     """
     Returns MapConfig object, with updated pump.has_been_discovered values.
     """
     for pump in map_config.pumps + map_config.fake_pumps:
         if pump.has_been_discovered == False:
-            pump.has_been_discovered = check_if_drone_can_see_pump(state, pump, drone_specs)
+            pump.has_been_discovered = check_if_drone_can_see_pump(state, pump, drone_specs,yaws_map)
             if pump.has_been_discovered:
                 print("found something!")
         
@@ -130,7 +139,7 @@ def get_map_index_of_pump(state:State, pump: Pump):
 
     return x_index, y_index
 
-def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs) -> bool:
+def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs, yaws_map) -> bool:
     """
     Returns true if drone can see given pump.
     Returns false if drone cannot see given pump.
@@ -154,7 +163,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
         n_diamter_cells_to_search+=1
     
     #exploring in positive y direc
-    if PI_half_neg - e_yaw < state.yaw and state.yaw < PI_half_neg + e_yaw:
+    if is_yaw_in_range(yaws_map["west"], state.yaw):
         lower_bound_x = state.map_drone_index_x - int(n_diamter_cells_to_search / 2)
         upper_bound_x = state.map_drone_index_x + int(n_diamter_cells_to_search / 2)
         upper_bound_y = state.map_drone_index_y + n_foward_cells_to_search
@@ -174,7 +183,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
                     return True
                 
     #exploring in positive x direction
-    elif 0 - e_yaw < state.yaw and state.yaw < 0 + e_yaw:
+    elif is_yaw_in_range(yaws_map["south"], state.yaw):
         lower_bound_y = state.map_drone_index_y - int(n_diamter_cells_to_search / 2)
         upper_bound_y = state.map_drone_index_y + int(n_diamter_cells_to_search / 2)
         upper_bound_x = state.map_drone_index_x + n_foward_cells_to_search
@@ -194,7 +203,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
                     return True
     
     #exploring in negative y direction            
-    elif PI_half_pos - e_yaw < state.yaw and state.yaw < PI_half_pos + e_yaw:
+    elif is_yaw_in_range(yaws_map["east"], state.yaw):
         lower_bound_x = state.map_drone_index_x - int(n_diamter_cells_to_search / 2)
         upper_bound_x = state.map_drone_index_x + int(n_diamter_cells_to_search / 2)
         lower_bound_y = state.map_drone_index_y - n_foward_cells_to_search
@@ -212,8 +221,7 @@ def check_if_drone_can_see_pump(state:State, pump: Pump, drone_specs: DroneSpecs
                     j = lower_bound_y - 1
                 elif i == x_index and j == y_index:
                     return True
-    elif ((PI_lower - e_yaw < state.yaw and state.yaw < PI_lower + e_yaw) 
-          or (PI_upper - e_yaw < state.yaw and state.yaw < PI_upper + e_yaw)):
+    elif is_yaw_in_range(yaws_map["north"], state.yaw):
         lower_bound_y = state.map_drone_index_y - int(n_diamter_cells_to_search / 2)
         upper_bound_y = state.map_drone_index_y + int(n_diamter_cells_to_search / 2)
         lower_bound_x = state.map_drone_index_x - n_foward_cells_to_search

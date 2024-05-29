@@ -6,7 +6,7 @@ import sys
 import threading
 import strategoutil as sutil
 sys.path.insert(0, '../')
-from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing
+from ROS import vehicle_odometry, offboard_control, camera_control, lidar_sensor, odom_publisher, map_processing_turtle
 from ROS import offboard_control_turtle
 import time
 import math
@@ -24,6 +24,7 @@ from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
 global offboard_control_instance
 global odom_publisher_instance
 global map_drone_tf_listener_instance
+global map_processing_instance
 global map_config
 
 global south_yaw
@@ -40,79 +41,53 @@ e_turn = 0.05
 e_move = 0.1
 uppaa_e = 0.5
 
-drone_specs = DroneSpecs(drone_diameter=0.07,safety_range=0.1,laser_range=2,laser_range_diameter=2)
+drone_specs = DroneSpecs(drone_diameter=0.07,safety_range=0.2,laser_range=2,laser_range_diameter=2)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "6",
-    "reset-no-better": "2",
-    "good-runs": "100",
-    "total-runs": "100",
-    "runs-pr-state": "100"
+    #"reset-no-better": "2",
+    #"good-runs": "100",
+    #"total-runs": "100",
+    #"runs-pr-state": "100"
     }
 
-
-def predict_state_based_on_action_seq(action_seq):
-    """
-    Returns the predicted state of the drone, by taking the action_seq
-    Returns None if the action_seq contains an unkown action.
-    """
-    x = offboard_control_instance.x
-    y = offboard_control_instance.y
-    yaw = offboard_control_instance.yaw
-
-    action_seq_copy = [act for act in action_seq]
-
-    while(len(action_seq_copy) > 0):
-        action = action_seq_copy.pop(0)
-        try:
-            x,y,yaw = get_drone_pos_based_on_action(action,x,y,yaw)
-        except:
-            print("could not predict state due to unkown action: " + action)
-            return None
-    state = map_processing.process_map_data(x, y,  map_config)
-    state.yaw = yaw
-    return state
         
 def get_current_state():
     x = offboard_control_instance.x
     y = offboard_control_instance.y
     yaw = offboard_control_instance.yaw
-    state = map_processing.process_map_data(x,y, map_config)
+    state = map_processing_instance.process_map_data(x,y, map_config)
     state.yaw = yaw
     return state
     
 
 def is_yaw_in_range(yaw_to_check):
     yaw = offboard_control_instance.yaw
-    print(yaw_to_check, yaw)
-    if yaw_to_check - 0.1 > yaw or yaw > yaw_to_check + 0.1: 
+    if yaw_to_check - 0.25 > yaw or yaw > yaw_to_check + 0.25: 
         return False
     else:
         return True
     
 
 def calculate_yaw(dir):
-    print(south_yaw,west_yaw,north_yaw,east_yaw)
     if is_yaw_in_range(south_yaw):
-        print("im in south")
         if dir == "RIGHT":
             return west_yaw
         else: return east_yaw
     elif is_yaw_in_range(north_yaw):
-        print("im in north")
         if dir == "RIGHT":
             return east_yaw
         else: return west_yaw
     elif is_yaw_in_range(west_yaw):
-        print("im in west")
         if dir == "RIGHT":
             return north_yaw
         else: return south_yaw
     elif is_yaw_in_range(east_yaw):
-        print("im in east")
         if dir == "RIGHT":
             return south_yaw
         else: return north_yaw
+    else:
+        print("WARNING: IM NOT IN ANY RANGES, IM IN", offboard_control_instance.yaw)
 
 
 
@@ -169,7 +144,8 @@ def activate_action_with_shield(action):
         state = activate_action(action)
     else:
         print("shielded action: {}".format(action))
-        run_action_seq([4,4,4,4])
+        #run_action_seq([4,4,4,4])
+        time.sleep(0.5)
         state = get_current_state()
         if(shield_action(action,state,drone_specs)):
             activate_action(action)
@@ -194,11 +170,11 @@ def get_all_yaw():
     global east_yaw
     global west_yaw
     south_yaw = offboard_control_instance.yaw
-    west_yaw = south_yaw + half_PI_right
+    west_yaw = south_yaw - half_PI_right
     west_yaw = (west_yaw + math.pi) % (2 * math.pi) - math.pi   
-    north_yaw = west_yaw + half_PI_right
+    north_yaw = west_yaw - half_PI_right
     north_yaw = (north_yaw + math.pi) % (2 * math.pi) - math.pi
-    east_yaw = north_yaw + half_PI_right
+    east_yaw = north_yaw - half_PI_right
     east_yaw = (east_yaw + math.pi) % (2 * math.pi) - math.pi
 
 def activate_action(action):
@@ -209,20 +185,34 @@ def activate_action(action):
     
     if action_is_move:
         distance = get_move_distance_from_action(action)
-        offboard_control_instance.move_robot(distance, None, 0.2)
+        if(is_yaw_in_range(east_yaw) or is_yaw_in_range(west_yaw)):
+            vel = -0.10
+        else: vel = 0.10
+        offboard_control_instance.move_robot(distance, None, vel)
         while(offboard_control_instance.is_running_action == True):
             time.sleep(0.1)
     else:
         if action == 4:
             radians = calculate_yaw("LEFT")
-            vel = -0.4
+            vel = 0.25
         else: 
             radians = calculate_yaw("RIGHT")
-            vel = 0.4
+            vel = -0.25
         offboard_control_instance.move_robot(None, radians, vel)
         while(offboard_control_instance.is_running_action == True):
             time.sleep(0.1)
-        print("ran one action")
+
+    state = map_processing_instance.process_map_data(offboard_control_instance.x, offboard_control_instance.y,  map_config)
+    state.yaw = offboard_control_instance.yaw
+
+    yaws_map = {
+        "east": east_yaw,
+        "west": west_yaw,
+        "south": south_yaw,
+        "north": north_yaw
+    }
+    map_config = run_pump_detection(state, map_config, drone_specs, yaws_map)
+    print("ran one action")
 
 
 
@@ -242,7 +232,7 @@ def run(template_file, query_file, verifyta_path):
     N = 0
     optimize = "maxE"
     learning_param = "accum_reward - time"
-    state = map_processing.process_map_data(x,y, map_config)
+    state = map_processing_instance.process_map_data(x,y, map_config)
     state.yaw = offboard_control_instance.yaw
     controller.generate_query_file(optimize, learning_param,
                                    state_vars=["DroneController.DescisionState"], 
@@ -251,9 +241,9 @@ def run(template_file, query_file, verifyta_path):
     
     total_time = 0.0
     k = 0
-    actions_left_to_trigger_learning = 3  
+    actions_left_to_trigger_learning = 0 
     train = True
-    horizon = 10
+    horizon = 5
 
     
     get_all_yaw()
@@ -269,10 +259,8 @@ def run(template_file, query_file, verifyta_path):
                 print("Beginning trainng for iteration {}".format(N))
 
                 controller.init_simfile()
-                
-                if(len(action_seq) == actions_left_to_trigger_learning):
-                    state = predict_state_based_on_action_seq(action_seq)
-                
+
+                state = get_current_state()                
 
                 # insert current state into simulation template
                 uppaal_state = {
@@ -302,24 +290,10 @@ def run(template_file, query_file, verifyta_path):
                 RUN_START_TIME = time.time()
                 
                 
-                parent_conn, child_conn = Pipe()
-                t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
-                t.start()
-                while t.is_alive():
-                    if(len(action_seq) > 0):
-                        all_actions_were_activated = run_action_seq(action_seq)
-                        action_seq = []
-                        if(all_actions_were_activated == False):
-                            train = True
-                            t.terminate()
-                            t.join()
-                    else:
-                        run_action_seq([4,4,4,4])
-                    t.join(0.2)
-                action_seq = list(parent_conn.recv())
-                if(train == True):
-                    state = get_current_state()
-                    continue
+                action_seq = controller.run(
+                queryfile=query_file,
+                verifyta_path=verifyta_path,
+                learning_args=learning_args)
                 k = 0
                 RUN_END_TIME = time.time()
                 K_END_TIME = time.time()
@@ -351,7 +325,8 @@ if __name__ == "__main__":
 
     offboard_control_instance = offboard_control_turtle.OffboardControlTurtle()
     offboard_control_turtle.init(offboard_control_instance)
-
+    map_processing_instance = map_processing_turtle.MapProcessing()
+    map_processing_turtle.init(map_processing_instance)
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--template-file", default="drone_model_stompc_continuous_turtle.xml", 
         help="Path to Stratego .xml file model template")

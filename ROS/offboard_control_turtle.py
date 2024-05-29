@@ -21,11 +21,11 @@ class OffboardControlTurtle(Node):
         )
 
         # Create publishers
-        self.vel_publisher = self.create_publisher(Twist, '/cmd_vel', qos_profile)
+        self.vel_publisher = self.create_publisher(Twist, '/cmd_vel', 10)
 
         # Create subscribers
         self.odom_subscriber = self.create_subscription(
-            Odometry, '/odom', self.odom_callback, qos_profile)
+            Odometry, '/odom', self.odom_callback, 10)
 
 
         # Initialize variables
@@ -41,7 +41,9 @@ class OffboardControlTurtle(Node):
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
 
-        self.yaw =math.atan2(2*msg.pose.pose.orientation.w*msg.pose.pose.orientation.z, msg.pose.pose.orientation.w*msg.pose.pose.orientation.w - msg.pose.pose.orientation.z*msg.pose.pose.orientation.z)
+        yaw_calculated = math.atan2(2*msg.pose.pose.orientation.w*msg.pose.pose.orientation.z, msg.pose.pose.orientation.w*msg.pose.pose.orientation.w - msg.pose.pose.orientation.z*msg.pose.pose.orientation.z)
+        if(yaw_calculated != None):
+            self.yaw = yaw_calculated
         if self.initial_position is None:
             self.initial_position = (self.x, self.y)
         else:
@@ -49,7 +51,6 @@ class OffboardControlTurtle(Node):
 
     
     def move_robot(self, distance, yaw_amount, velocity):
-        print("im called with ", yaw_amount)
         self.is_running_action = True
         command = Twist()
         if distance != None:
@@ -65,7 +66,6 @@ class OffboardControlTurtle(Node):
                 command.angular.z = 0.0
                 #print("current yaw: {}, goal is: {}".format(self.yaw, yaw_amount))
 
-        
         self.vel_publisher.publish(command)
         self.initial_position = None
         self.distance_moved = 0.0
@@ -73,15 +73,17 @@ class OffboardControlTurtle(Node):
 
   
 
-def init(offboard_control_instance, args=None) -> None:
-    print('Starting offboard control node...')
+def init(map_processing_instance, args=None) -> None:
+    print('Starting OFFBOARD node...')
    
 
-    def run_offboard_control():
-       rclpy.spin(offboard_control_instance)
-       rclpy.shutdown()
-    offboard_thread = threading.Thread(target=run_offboard_control)
+    def run_odom_publisher():
+       executor = rclpy.executors.SingleThreadedExecutor()
+       executor.add_node(map_processing_instance)
+       executor.spin()
+    offboard_thread = threading.Thread(target=run_odom_publisher)
     offboard_thread.start()
-    
+
+
 
 

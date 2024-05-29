@@ -5,9 +5,8 @@ from classes import Pump,MapConfig
 ### BASELINE MAP WITH ONE PUMP ###
 ##################################
 def get_baseline_one_pump_config():
-    pump = Pump(-4.5,-7.2)
-    fake_pump = Pump(0,-8.5)
-    config = MapConfig(pumps=[pump], fake_pumps=[fake_pump], n_cells_in_area=1000)
+    pump = Pump(-1.85,2.5)
+    config = MapConfig(pumps=[pump], fake_pumps=[], n_cells_in_area=1000)
     return config
 
 

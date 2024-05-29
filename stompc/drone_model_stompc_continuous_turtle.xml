@@ -69,18 +69,17 @@ const bool open = //TAG_open;
 
 double accum_reward = 0;
 
-const double upper_range_pump_detection = 0.75;
-const double lower_range_pump_detection = 0.55;
-
+const double upper_range_pump_detection = 1.50;
+const double lower_range_pump_detection = 0.25;
+const int confidence = 65;
 
 bool yaw_is_in_range(double yaw_to_check) {
     if(yaw_to_check - 0.1 &gt; yaw || yaw &gt; yaw_to_check + 0.1) {
-        return true;
-    }else {
         return false;
+    }else {
+        return true;
     }
 }
-
 void calculate_reward() {
     int cells_updated = 0; // The number of cells that have been discovered / changed from unknown
     int N_forward_cells_to_update = fint(laser_range / map_granularity); // Gives us the number of drones to check in front of the drone
@@ -103,6 +102,9 @@ void calculate_reward() {
 
         int i;
         int j;
+        int jj;
+        int ui = x;
+        int li = x-1;
 
         if(lower_bound_x &lt; 0) {
             lower_bound_x = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
@@ -114,27 +116,56 @@ void calculate_reward() {
             upper_bound_y = map_height; // if we are reaching a point where the range of the drone would go outside the map in the posivtive direction, we set the upper bound for y to map height
         }
 
-        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
+        while(lower_bound_x &lt;= li || ui &lt; upper_bound_x){
             for(j = y + 1; j &lt; upper_bound_y; j++) {
-                if(map[j][i] == 100) {
-                    j = upper_bound_y;
-                }
-                else if(map[j][i] == 2) {
-                    if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
-                        accum_reward = accum_reward + pump_exploration_reward;
-                        map[j][i] = 3;
-                    }
-                }
-                else if(map[j][i] == -1) {
-                    accum_reward = accum_reward + discovery_reward;
-                    if(!open){
-                        map[j][i] = 100;
+                if(ui &lt; upper_bound_x){
+                    if(map[j][ui] == 100) {
                         j = upper_bound_y;
-                    }else {
-                        map[j][i] = 0;
+                        ui = upper_bound_x;
+                    }
+                    else if(map[j][ui] == 2) {
+                        if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[j][ui] = 3;
+                        }
+                    }
+                    else if(map[j][ui] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[j][ui] = 100;
+                            j = upper_bound_y;
+                        }else {
+                        map[j][ui] = 0;
+                        }
                     }
                 }
             }
+
+            for(j = y + 1; j &lt; upper_bound_y; j++){                
+                if(lower_bound_x &lt;= li){
+                    if(map[j][li] == 100) {
+                        j = upper_bound_y;
+                        li = lower_bound_x - 1;
+                    }
+                    else if(map[j][li] == 2) {
+                        if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[j][li] = 3;
+                        }
+                    }
+                    else if(map[j][li] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[j][li] = 100;
+                            j = upper_bound_y;
+                        }else {
+                            map[j][li] = 0;
+                        }
+                    }
+                }
+            }
+            ui += 1;
+            li -= 1;
         }
     }else if(yaw_is_in_range(south_yaw)) { // exploring in positive x direction
         int lower_bound_y = y - (N_diameter_cells_to_update / 2);
@@ -143,6 +174,8 @@ void calculate_reward() {
 
         int i;
         int j;
+        int uj = y;
+        int lj = y-1;
 
         if(lower_bound_y &lt; 0) {
             lower_bound_y = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
@@ -154,27 +187,57 @@ void calculate_reward() {
             upper_bound_x = map_width; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
         }
 
-        for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
+
+        while(lower_bound_y &lt;= lj || uj &lt; upper_bound_y) {
             for(i = x + 1; i &lt; upper_bound_x; i++) {
-                if(map[j][i] == 100) {
-                    i = upper_bound_x;
-                }
-                else if(map[j][i] == 2) {
-                    if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
-                        accum_reward = accum_reward + pump_exploration_reward;
-                        map[j][i] = 3;
-                    }
-                }
-                else if(map[j][i] == -1) {
-                    accum_reward = accum_reward + discovery_reward;
-                    if(!open){
-                        map[j][i] = 100;
+                if(uj &lt; upper_bound_y) {
+                    if(map[uj][i] == 100) {
                         i = upper_bound_x;
-                    }else {
-                        map[j][i] = 0;
+                        uj = upper_bound_y;
+                    }
+                    else if(map[uj][i] == 2) {
+                        if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[uj][i] = 3;
+                        }
+                    }
+                    else if(map[uj][i] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[uj][i] = 100;
+                            i = upper_bound_x;
+                        }else {
+                            map[uj][i] = 0;
+                        }
                     }
                 }
             }
+            
+            for(i = x + 1; i &lt; upper_bound_x; i++){
+                if(lower_bound_y &lt;= lj){
+                    if(map[lj][i] == 100) {
+                        i = upper_bound_x;
+                        lj = lower_bound_y-1;
+                    }
+                    else if(map[lj][i] == 2) {
+                        if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[lj][i] = 3;
+                        }
+                    }
+                    else if(map[lj][i] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[lj][i] = 100;
+                            i = upper_bound_x;
+                        }else {
+                            map[lj][i] = 0;
+                        }
+                    }
+                }
+            }
+            uj += 1;
+            lj -= 1;
         }
     }else if(yaw_is_in_range(east_yaw)) { // exploring in negative y direction
         int lower_bound_x = x - (N_diameter_cells_to_update / 2);
@@ -183,6 +246,8 @@ void calculate_reward() {
 
         int i;
         int j;
+        int ui = x;
+        int li = x;
 
         if(lower_bound_x &lt; 0) {
             lower_bound_x = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
@@ -194,27 +259,57 @@ void calculate_reward() {
             upper_bound_y = 0; // if we are reaching a point where the range of the drone would go outside the map in the negative direction, we set the upper bound for y to 0
         }
 
-        for(i = lower_bound_x; i &lt; upper_bound_x; i++) {
-            for(j = y - 1; j &gt;= upper_bound_y; j--) {
-                if(map[j][i] == 100) {
-                    j = upper_bound_y - 1;
-                }
-                else if(map[j][i] == 2) {
-                    if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
-                        accum_reward = accum_reward + pump_exploration_reward;
-                        map[j][i] = 3;
+        while(lower_bound_x &lt;= li || ui &lt; upper_bound_x){
+            for(j = y; j &gt;= upper_bound_y; j--) {
+                if(ui &lt; upper_bound_x){
+                    if(map[j][ui] == 100) {
+                        j = upper_bound_y;
+                        ui = upper_bound_x;
                     }
-                }
-                else if(map[j][i] == -1) {
-                    accum_reward = accum_reward + discovery_reward;
-                    if(!open) {
-                        map[j][i] = 100;
-                        j = upper_bound_y - 1;
-                    }else {
-                        map[j][i] = 0;
+                    else if(map[j][ui] == 2) {
+                        if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[j][ui] = 3;
+                        }
+                    }
+                    else if(map[j][ui] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[j][ui] = 100;
+                            j = upper_bound_y;
+                        }else {
+                        map[j][ui] = 0;
+                        }
                     }
                 }
             }
+            
+            for(j = y; j &gt;= upper_bound_y; j--){                
+                if(lower_bound_x &lt;= li){
+                    if(map[j][li] == 100) {
+                        j = upper_bound_y;
+                        li = lower_bound_x-1;
+                    }
+                    else if(map[j][li] == 2) {
+                        if(abs(j - y) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(j - y) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[j][li] = 3;
+                        }
+                    }
+                    else if(map[j][li] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[j][li] = 100;
+                            j = upper_bound_y;
+                        }else {
+                            map[j][li] = 0;
+                        }
+                    }
+                }
+            }
+            
+            ui += 1;
+            li -= 1;
         }
     }else if(yaw_is_in_range(north_yaw)) { // exploring in negative x direction
         int lower_bound_y = y - (N_diameter_cells_to_update / 2);
@@ -223,6 +318,8 @@ void calculate_reward() {
 
         int i;
         int j;
+        int uj = y;
+        int lj = y-1;
 
         if(lower_bound_y &lt; 0) {
             lower_bound_y = 0; // if we reach a point where the cells would go outside of the map in the negative direction, we set the lower bound to 0
@@ -234,27 +331,58 @@ void calculate_reward() {
             upper_bound_x = 0; // if we reach a point where the cells would go outside of the map in the positive direction, we set the upper bound to the width of the map
         }
 
-        for(j = lower_bound_y; j &lt; upper_bound_y; j++) {
+
+        while(lower_bound_y &lt;= lj || uj &lt; upper_bound_y) {
             for(i = x - 1; i &gt;= upper_bound_x; i--) {
-                if(map[j][i] == 100) {
-                    i = upper_bound_x -1;
-                }
-                else if(map[j][i] == 2) {
-                    if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
-                        accum_reward = accum_reward + pump_exploration_reward;
-                        map[j][i] = 3;
+                if(uj &lt; upper_bound_y) {
+                    if(map[uj][i] == 100) {
+                        i = upper_bound_x;
+                        uj = upper_bound_y;
                     }
-                }
-                else if(map[j][i] == -1) {
-                    accum_reward = accum_reward + discovery_reward;
-                    if(!open) {
-                        map[j][i] = 100;
-                        i = upper_bound_x - 1;
-                    }else {
-                        map[j][i] = 0;
+                    else if(map[uj][i] == 2) {
+                        if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[uj][i] = 3;
+                        }
+                    }
+                    else if(map[uj][i] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[uj][i] = 100;
+                            i = upper_bound_x;
+                        }else {
+                            map[uj][i] = 0;
+                        }
                     }
                 }
             }
+             
+            for(i = x - 1; i &gt;= upper_bound_x; i--) {   
+                if(lower_bound_y &lt;= lj){
+                    if(map[lj][i] == 100) {
+                        i = upper_bound_x;
+                        lj = lower_bound_y-1;
+                    }
+                    else if(map[lj][i] == 2) {
+                        if(abs(i - x) &lt;= upper_range_pump_detection_cells &amp;&amp; abs(i - x) &gt;= lower_range_pump_detection_cells) {
+                            accum_reward = accum_reward + pump_exploration_reward;
+                            map[lj][i] = 3;
+                        }
+                    }
+                    else if(map[lj][i] == -1) {
+                        accum_reward = accum_reward + discovery_reward;
+                        if(!open){
+                            map[lj][i] = 100;
+                            i = upper_bound_x;
+                        }else {
+                            map[lj][i] = 0;
+                        }
+                    }
+                }
+            } 
+
+            uj += 1;
+            lj -= 1;
         }
     }
 }
