@@ -11,7 +11,16 @@ def get_baseline_one_pump_config():
     return config
 
 
+##################################
+### CYLINEDER MAP WITH 3 PUMPS ###
+##################################
+def get_baseline_cylinder_room_config():
+    pump1 = Pump(0,-3.5)
+    pump2 = Pump(-4.5,2.3)
+    pump3 = Pump(-5.5,-5.2)
 
+    config = MapConfig(pumps=[pump1,pump2,pump3], fake_pumps=[], n_cells_in_area=31415)
+    return config
 
 ##################################
 ### BASELINE MAP WITH ONE PUMP ###

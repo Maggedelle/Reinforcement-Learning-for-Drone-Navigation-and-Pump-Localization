@@ -21,7 +21,7 @@ from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
 from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
-from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config, get_baseline_big_room_config, get_baseline_tetris_room_config
+from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config, get_baseline_big_room_config, get_baseline_tetris_room_config,get_baseline_cylinder_room_config
 
 global offboard_control_instance
 global odom_publisher_instance
@@ -57,7 +57,7 @@ learning_args = {
     }
 
 global map_config
-map_config = get_baseline_tetris_room_config()
+map_config = get_baseline_cylinder_room_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
