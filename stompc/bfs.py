@@ -1,7 +1,7 @@
 from collections import deque
 from classes import State, DroneSpecs, TrainingParameters
 from utils import check_if_drone_can_see_pump, shield_action
-def get_action_from_bfs(state:State, drone_specs: DroneSpecs):
+def get_path_from_bfs(state:State, drone_specs: DroneSpecs):
 
     rows, cols = len(state.map), len(state.map[0])
     queue = deque([(state.map_drone_index_y, state.map_drone_index_x, -1)])
@@ -13,21 +13,37 @@ def get_action_from_bfs(state:State, drone_specs: DroneSpecs):
     start_row, start_col = state.map_drone_index_y, state.map_drone_index_x
     visited[start_row][start_col] = True
 
+    path_to_poi = None
+    path_to_unkown_cell = None
+
     # BFS
 
     while queue:
         r, c, dir = queue.popleft()
 
 
-        if state.map[r][c] == -1:
-            path = []
+
+        #found a poi
+        if state.map[r][c] == 2:
+            path_to_poi = []
+            while (r,c) != (state.map_drone_index_y, state.map_drone_index_x):
+                path_to_poi.append(dir)
+                r, c = parents[r][c]
+            path_to_poi.reverse()
+            return path_to_poi
+        
+        #found a unkown cell
+        if state.map[r][c] == -1 and path_to_unkown_cell:
+            path_to_unkown_cell = []
 
             while (r, c) != (state.map_drone_index_y, state.map_drone_index_x):
-                path.append(dir)
+                path_to_unkown_cell.append(dir)
                 r, c = parents[r][c]
-            path.reverse()
-            return path
+            path_to_unkown_cell.reverse()
+            
         
+
+
         for i, (dr, dc) in enumerate(directions):
             nr, nc = r + dr, c + dc
 
@@ -38,4 +54,8 @@ def get_action_from_bfs(state:State, drone_specs: DroneSpecs):
                 queue.append((nr,nc, i))
 
     
-    return None 
+    if path_to_unkown_cell != None:
+        return path_to_unkown_cell
+    else:
+        print("Didn't find any POI or unkown cells")
+        return None 
