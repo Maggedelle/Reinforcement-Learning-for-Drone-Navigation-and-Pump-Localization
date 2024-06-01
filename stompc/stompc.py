@@ -9,6 +9,7 @@ import time
 import math
 import csv
 from multiprocessing import Process, Queue, Pipe
+from bfs import get_path_from_bfs
 sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
@@ -226,6 +227,8 @@ def run(template_file, query_file, verifyta_path):
     horizon = 10
     learning_time_accum = 0
 
+    use_baseline = True
+
     run_action_seq([4,4,4,4])
 
     while not (all(pump.has_been_discovered for pump in map_config.pumps + map_config.fake_pumps) and check_map_closed(state, ALLOWED_GAP_IN_MAP)) and CURR_TIME_SPENT < TIME_PER_RUN:
@@ -264,10 +267,13 @@ def run(template_file, query_file, verifyta_path):
             train = False
             UPPAAL_START_TIME = time.time()
 
-            action_seq = controller.run(
-                queryfile=query_file,
-                verifyta_path=verifyta_path,
-                learning_args=learning_args)
+            if use_baseline == False:    
+                action_seq = controller.run(
+                    queryfile=query_file,
+                    verifyta_path=verifyta_path,
+                    learning_args=learning_args)
+            else:
+                action_seq = get_path_from_bfs(state, drone_specs)
             
             """ parent_conn, child_conn = Pipe()
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))

@@ -51,7 +51,7 @@ def get_path_from_bfs(state:State, drone_specs: DroneSpecs):
             if 0 <= nr < rows and 0 <= nc < cols and not visited[nr][nc] and not shield_action(i + 10, state, drone_specs):
                 visited[nr][nc] = True
                 parents[nr][nc] = (r, c)
-                queue.append((nr,nc, i))
+                queue.append((nr,nc, i + 10))
 
     
     if path_to_unkown_cell != None:
