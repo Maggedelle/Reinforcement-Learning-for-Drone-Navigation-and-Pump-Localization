@@ -58,7 +58,7 @@ learning_args = {
     }
 
 global map_config
-map_config = get_baseline_cylinder_room_config()
+map_config = get_baseline_one_pump_config()
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
@@ -273,7 +273,7 @@ def run(template_file, query_file, verifyta_path):
                     verifyta_path=verifyta_path,
                     learning_args=learning_args)
             else:
-                action_seq = get_path_from_bfs(state, drone_specs)
+                action_seq = get_path_from_bfs(state, drone_specs, map_config)
             
             """ parent_conn, child_conn = Pipe()
             t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
@@ -388,7 +388,7 @@ def write_to_csv(filename, res):
 
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    file_name = f'experiments/cylinder_experiment_open={0}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
+    file_name = f'experiments/baseline.csv'
     #create_csv(file_name)
 
     res, takeoff = main()
