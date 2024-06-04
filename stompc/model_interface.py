@@ -44,7 +44,7 @@ class QueueLengthController(StrategoController):
     
 
     def generate_simulate_query(self, observables) :
-        simulate_length = "1000"
+        simulate_length = "100"
         stop_condition = "(DroneController.target || time >= 10)"
 
         simulate_string = "simulate [<={};1]".format(simulate_length)
@@ -61,6 +61,6 @@ class QueueLengthController(StrategoController):
         tpls = sutil.get_int_tuples(output)
         result = sutil.get_duration_action(tpls, max_time=1000)
         d,a = list(zip(*result))
-        """ actions.send(a)
-        actions.close() """
+        #actions.send(a)
+        #actions.close()
         return list(a)
