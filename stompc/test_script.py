@@ -7,7 +7,7 @@ import psutil
 import csv
 import datetime
 
-NUMBER_OF_RUNS = 101
+NUMBER_OF_RUNS = 20
 MAX_TIME_PER_RUN = 600
 START_TIMESTAMP = datetime.datetime.now()
 
@@ -45,7 +45,7 @@ def kill_proc_tree(pid, sig=signal.SIGKILL, include_parent=True,
 
     return (gone, alive)
 
-file = 'experiments/training_time.csv'
+file = 'experiments/training_time_runs.csv'
 
 def get_number_of_lines_csv (filename):
     number_of_lines = 0
@@ -55,7 +55,7 @@ def get_number_of_lines_csv (filename):
     return number_of_lines - 1
 
 i = 0
-number_of_lines = get_number_of_lines_csv(file) + 10
+number_of_lines = get_number_of_lines_csv(file)
 while number_of_lines < NUMBER_OF_RUNS:
     print("Starting run")
     start_time = time.time()

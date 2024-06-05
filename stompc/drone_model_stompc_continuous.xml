@@ -423,6 +423,19 @@ bool can_move(int action, double step_length) {
         drone_cells_to_cover += 1;
     }
 
+    if(step_length == 2.0) {
+        step_length = 2.0;
+    }else if(step_length == -2.0) {
+        step_length = -2.0;
+    }else if(step_length == 2.0) {
+        step_length = 2.0;
+    }else if(step_length == -2.0) {
+        step_length = -2.0;
+    }
+
+    N_cells_in_dir = fint((step_length / 2) / map_granularity);
+
+
     if(action == 0) {
         int lower_bound_x = x - (drone_cells_to_cover / 2) - safety_range_cells;
         int upper_bound_x = x +  (drone_cells_to_cover / 2) + safety_range_cells;
@@ -737,7 +750,7 @@ void move(double dir_x, double dir_y) {
         my_moving_cost = my_moving_cost + 20.0;
     }
 
-    if(dir_x == 2.0) {
+    if(dir_x == 2.0) {    
         dir_x = 1.0;
     }else if(dir_x == -2.0) {
         dir_x = -1.0;
