@@ -1,4 +1,6 @@
 __pycache__/
 build/
+.vscode/
 pumpdetection_model/outputs/model.pt
 .pt
+.env

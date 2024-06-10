@@ -1,6 +1,6 @@
 import strategoutil as sutil
 from strategoutil import StrategoController
-
+from multiprocessing import Process, Queue
 class QueueLengthController(StrategoController):
     def __init__(self, templatefile, state_names):
         super().__init__(templatefile, state_names)
@@ -30,9 +30,9 @@ class QueueLengthController(StrategoController):
 
     def generate_strategy_query(self,optimize, learning_param, state_vars, point_vars):
 
-        time_to_reach_stop_condition = "1000"
+        time_to_reach_stop_condition = "21"
         
-        stop_condition = "(DroneController.target || time >= 10)"
+        stop_condition = "(DroneController.target || time >= 20)"
 
         strategy_string = "strategy opt = {}({}) [<={}]".format(optimize, learning_param, time_to_reach_stop_condition)
         strategy_string += "{" + ",".join(state_vars) + "}"
@@ -44,8 +44,8 @@ class QueueLengthController(StrategoController):
     
 
     def generate_simulate_query(self, observables) :
-        simulate_length = "1000"
-        stop_condition = "(DroneController.target || time >= 20)"
+        simulate_length = "100"
+        stop_condition = "(DroneController.target || time >= 10)"
 
         simulate_string = "simulate [<={};1]".format(simulate_length)
         simulate_string += " {" + ",".join(observables) + "}"
@@ -60,5 +60,7 @@ class QueueLengthController(StrategoController):
    
         tpls = sutil.get_int_tuples(output)
         result = sutil.get_duration_action(tpls, max_time=1000)
-        durations, actions = list(zip(*result)) 
-        return list(actions)
+        d,a = list(zip(*result))
+        #actions.send(a)
+        #actions.close()
+        return list(a)

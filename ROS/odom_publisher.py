@@ -46,7 +46,6 @@ class FramePublisher(Node):
 
     def __init__(self):
         super().__init__('turtle_tf2_frame_publisher')
-        print("init odom publisher")
         # Declare and acquire `turtlename` parameter
 
         # Initialize the transform broadcaster
