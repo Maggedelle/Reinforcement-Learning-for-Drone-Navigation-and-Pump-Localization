@@ -9,6 +9,7 @@ import time
 import math
 import csv
 from multiprocessing import Process, Queue, Pipe
+from bfs import get_path_from_bfs
 sys.path.insert(0, '../')
 from dotenv import load_dotenv
 load_dotenv()
@@ -21,7 +22,7 @@ from bridges import init_rclpy, shutdown_rclpy
 from environment import generate_environment
 from utils import turn_drone, shield_action, build_uppaal_2d_array_string, run_pump_detection, check_map_closed, measure_coverage
 from classes import State, DroneSpecs, TrainingParameters
-from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config
+from maps import get_baseline_one_pump_config, get_baseline_two_pumps_config, get_baseline_big_room_config, get_baseline_tetris_room_config,get_baseline_cylinder_room_config
 
 global offboard_control_instance
 global odom_publisher_instance
@@ -33,7 +34,7 @@ ENV_GZ_PATH = os.environ['GZ_PATH']
 ENV_LAUNCH_FILE_PATH = os.environ['LAUNCH_FILE_PATH']
 
 #Experiment settings
-TIME_PER_RUN = 1080
+TIME_PER_RUN = 600
 RUN_START = None
 CURR_TIME_SPENT = 0
 ALLOWED_GAP_IN_MAP = 1
@@ -47,17 +48,23 @@ e_move = 0.1
 uppaa_e = 0.5
 
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
-training_parameters = TrainingParameters(open=0, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
+training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
     "max-iterations": "3",
-    #"reset-no-better": "3",
-    #"good-runs": "300",
-    #"total-runs": "300",
+    #"reset-no-better": "5",
+    #"good-runs": "50",
+    #"total-runs": "250",
     #"runs-pr-state": "100"
     }
 
 global map_config
 map_config = get_baseline_one_pump_config()
+
+
+def write_to_csv(filename, res):
+    with open(filename, 'a+') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(res)
 
 def get_current_state():
     x = float(vehicle_odometry.get_drone_pos_x())
@@ -211,7 +218,7 @@ def run(template_file, query_file, verifyta_path):
     num_of_actions = 0
     N = 0
     optimize = "maxE"
-    learning_param = "accum_reward - time"
+    learning_param = "accum_reward"
     state = map_processing.process_map_data(x,y, map_config)
     state.yaw = offboard_control_instance.yaw
     controller.generate_query_file(optimize, learning_param,
@@ -225,6 +232,8 @@ def run(template_file, query_file, verifyta_path):
     train = True
     horizon = 10
     learning_time_accum = 0
+
+    use_baseline = False
 
     run_action_seq([4,4,4,4])
 
@@ -264,34 +273,35 @@ def run(template_file, query_file, verifyta_path):
             train = False
             UPPAAL_START_TIME = time.time()
 
-            action_seq = controller.run(
-                queryfile=query_file,
-                verifyta_path=verifyta_path,
-                learning_args=learning_args)
+            if use_baseline == False:    
+                """parent_conn, child_conn = Pipe()
+                    t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
+                    t.start()
+                    while t.is_alive():
+                        CURR_TIME_SPENT = time.time() - RUN_START
+                        if CURR_TIME_SPENT > TIME_PER_RUN:
+                            t.terminate()
+                            t.join()
+                            break
+                        if(len(action_seq) > 0):
+                            all_actions_were_activated = run_action_seq(action_seq)
+                            action_seq = []
+                            if(all_actions_were_activated == False):
+                                train = True
+                                t.terminate()
+                                t.join()
+                        else:
+                            run_action_seq([4,4,4,4])
+                        t.join(0.2)
+                    action_seq = list(parent_conn.recv())
+                    if(train == True):
+                        state = get_current_state()
+                        continue"""
+                action_seq = controller.run(queryfile=query_file,verifyta_path=verifyta_path,learning_args=learning_args)
+            else:
+                action_seq = get_path_from_bfs(state, drone_specs, map_config)
             
-            """ parent_conn, child_conn = Pipe()
-            t = Process(target=controller.run, args=(child_conn,query_file,learning_args,verifyta_path,))
-            t.start()
-            while t.is_alive():
-                CURR_TIME_SPENT = time.time() - RUN_START
-                if CURR_TIME_SPENT > TIME_PER_RUN:
-                    t.terminate()
-                    t.join()
-                    break
-                if(len(action_seq) > 0):
-                    all_actions_were_activated = run_action_seq(action_seq)
-                    action_seq = []
-                    if(all_actions_were_activated == False):
-                        train = True
-                        t.terminate()
-                        t.join()
-                else:
-                    run_action_seq([4,4,4,4])
-                t.join(0.2)
-            action_seq = list(parent_conn.recv())
-            if(train == True):
-                state = get_current_state()
-                continue """
+        
             k = 0
             UPPAAL_END_TIME = time.time()
             K_END_TIME = time.time()
@@ -300,6 +310,7 @@ def run(template_file, query_file, verifyta_path):
             learning_time_accum += learning_time
             print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
             print("Got action sequence from STRATEGO: ", action_seq)
+            write_to_csv(f'experiments/training_time.csv', [state.map_height * state.map_width, learning_time])
         
         k=k+1
         if(len(action_seq) == 0):
@@ -314,7 +325,7 @@ def run(template_file, query_file, verifyta_path):
                 train = True
                 k = 0
                 action_seq = []
-            """ elif len(action_seq) == actions_left_to_trigger_learning:
+            """elif len(action_seq) == actions_left_to_trigger_learning:
                 train = True
                 k = 0 """
             
@@ -370,22 +381,18 @@ def main():
 
 def create_csv(filename):
     """ Used to create initial csv file  """     
-    fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    #fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    fields = ['total_cells', 'training_time']
     with open(filename, 'w+') as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
         writer.writerow(fields)
 
-def write_to_csv(filename, res):
-    with open(filename, 'a+') as csv_file:
-        writer = csv.writer(csv_file)
-        writer.writerow(res)
-
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    file_name = f'experiments/Experiment_open={0}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
-    create_csv(file_name)
+    file_name = f'experiments/training_time_runs.csv'
+    #create_csv(file_name)
 
-    """ res, takeoff = main()
+    res, takeoff = main()
     print("\nResults for run:\n   Found all pumps: {}\n   Map closed: {}\n   Total coverage of room: {}\n   Total time taken (in minutes): {}\n   Number of times trained: {}\n   Average training time: {}\n   Number of actions activated: {}\n   Possible crash: {}\n   Takeoff: {}\n".format(res[0],res[1],res[2],res[3],res[4],res[5], res[6], res[7], takeoff))
     if takeoff:
-        write_to_csv(file_name, res) """
+        write_to_csv(file_name, res)

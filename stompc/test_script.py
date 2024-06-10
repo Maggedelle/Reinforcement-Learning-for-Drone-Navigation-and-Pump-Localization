@@ -7,8 +7,8 @@ import psutil
 import csv
 import datetime
 
-NUMBER_OF_RUNS = 100
-MAX_TIME_PER_RUN = 1080
+NUMBER_OF_RUNS = 20
+MAX_TIME_PER_RUN = 600
 START_TIMESTAMP = datetime.datetime.now()
 
 def kill_proc_tree(pid, sig=signal.SIGKILL, include_parent=True,
@@ -45,7 +45,7 @@ def kill_proc_tree(pid, sig=signal.SIGKILL, include_parent=True,
 
     return (gone, alive)
 
-file = 'experiments/Experiment_open=0_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=3_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
+file = 'experiments/training_time_runs.csv'
 
 def get_number_of_lines_csv (filename):
     number_of_lines = 0
@@ -57,7 +57,7 @@ def get_number_of_lines_csv (filename):
 i = 0
 number_of_lines = get_number_of_lines_csv(file)
 while number_of_lines < NUMBER_OF_RUNS:
-    print("Starting run {}".format(i+1))
+    print("Starting run")
     start_time = time.time()
     stompc_proc = psutil.Popen("python3 stompc.py",
                     shell=True,
@@ -76,7 +76,7 @@ while number_of_lines < NUMBER_OF_RUNS:
             break
     i += 1
 
-    print("Run {} finished, killing processes".format(i+1))
+    print("Run finished, killing processes".format(i+1))
     kill_proc_tree(stompc_proc.pid)
     time.sleep(5)
     print("Processes killed\n")
