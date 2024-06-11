@@ -50,7 +50,7 @@ uppaa_e = 0.5
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "3",
+    "max-iterations": "2",
     #"reset-no-better": "5",
     #"good-runs": "50",
     #"total-runs": "250",
@@ -310,7 +310,7 @@ def run(template_file, query_file, verifyta_path):
             learning_time_accum += learning_time
             print("Working on iteration {} took: {:0.4f} seconds, of that training took: {:0.4f} seconds.".format(N, iteration_time, learning_time))
             print("Got action sequence from STRATEGO: ", action_seq)
-            write_to_csv(f'experiments/training_time.csv', [state.map_height * state.map_width, learning_time])
+            #write_to_csv(f'experiments/training_time.csv', [state.map_height * state.map_width, learning_time])
         
         k=k+1
         if(len(action_seq) == 0):
@@ -381,15 +381,15 @@ def main():
 
 def create_csv(filename):
     """ Used to create initial csv file  """     
-    #fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
-    fields = ['total_cells', 'training_time']
+    fields = ['found_all_pumps', 'map_closed', 'coverage_of_room', 'time_taken', 'times_trained', 'avg_training_time', 'actions_activated', 'possible_crash']
+    #fields = ['total_cells', 'training_time']
     with open(filename, 'w+') as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
         writer.writerow(fields)
 
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    file_name = f'experiments/training_time_runs.csv'
+    file_name = f'experiments/nobug_Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=2_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
     #create_csv(file_name)
 
     res, takeoff = main()
