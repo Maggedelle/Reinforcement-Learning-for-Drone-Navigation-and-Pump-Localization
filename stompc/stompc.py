@@ -50,10 +50,10 @@ uppaa_e = 0.5
 drone_specs = DroneSpecs(drone_diameter=0.6,safety_range=0.4,laser_range=4,laser_range_diameter=3)
 training_parameters = TrainingParameters(open=1, turning_cost=20.0, moving_cost=20.0, discovery_reward=10.0, pump_exploration_reward=1000.0)
 learning_args = {
-    "max-iterations": "2",
+    "max-iterations": "3",
     #"reset-no-better": "5",
-    #"good-runs": "50",
-    #"total-runs": "250",
+    "good-runs": "50",
+    "total-runs": "300",
     #"runs-pr-state": "100"
     }
 
@@ -389,7 +389,7 @@ def create_csv(filename):
 
 if __name__ == "__main__":
     #file_name = f'Experiment_open={1}_turningcost={20}_movingcost={20}_discoveryreward={10}_pumpreward={1000}_safetyrange={40}cm_maxiter={learning_args["max-iterations"]}_rnb={learning_args["reset-no-better"]}_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps={learning_args["runs-pr-state"]}.csv'
-    file_name = f'experiments/nobug_Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=2_rnb=default_gr=default_tr=default_rps=default_h=20.csv'
+    file_name = f'experiments/nobug_Experiment_open=1_turningcost=20_movingcost=20_discoveryreward=10_pumpreward=1000_safetyrange=40cm_maxiter=3_rnb=default_gr={learning_args["good-runs"]}_tr={learning_args["total-runs"]}_rps=default_h=20.csv'
     #create_csv(file_name)
 
     res, takeoff = main()
